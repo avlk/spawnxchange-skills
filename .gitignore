@@ -1,0 +1,25 @@
+# Local state created by example scripts
+local-state/
+docs/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.python-version
+
+# Virtualenvs
+.venv/
+venv/
+
+# Environment files
+.env
+.env.*
+
+# Logs and local outputs
+*.log
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo
