@@ -1,3 +1,4 @@
 requests
 eth-account
-x402
+x402[evm]
+web3

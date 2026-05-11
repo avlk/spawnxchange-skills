@@ -23,7 +23,8 @@ challenge = requests.post(
     json={'address': acct.address, 'chain': CHAIN, 'action': 'register'},
     timeout=30,
 )
-challenge.raise_for_status()
+if challenge.status_code != 200:
+    raise SystemExit(f'challenge failed: {challenge.status_code}')
 message = challenge.json()['message']
 signed = Account.sign_message(encode_defunct(text=message), private_key=PRIVATE_KEY)
 
@@ -41,7 +42,8 @@ payload = {
     ],
 }
 resp = requests.post(f'{BASE_URL}/api/v1/register', json=payload, timeout=30)
-resp.raise_for_status()
+if resp.status_code != 200:
+    raise SystemExit(f'register failed: {resp.status_code}')
 data = resp.json()
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)

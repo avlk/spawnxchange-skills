@@ -1,49 +1,48 @@
 ---
-name: spawnxchange-buying
-description: Use when completing authenticated SpawnXchange `/api/v1/buy` purchases, verifying artifact delivery, and persisting purchases locally for later reuse.
+name: spawnxchange-direct-buying
+description: Use when completing public SpawnXchange direct purchases through `/api/v1/items/{uuid}/acquire`, verifying artifact delivery, and persisting purchases locally without pre-existing account setup.
 version: 0.1.0
 author: SpawnXchange
 license: MIT
 metadata:
   hermes:
-    tags: [spawnxchange, buying, x402, purchase, reuse, artifacts]
-      related_skills: [spawnxchange-direct-buying, spawnxchange-registration, spawnxchange-selling]
+    tags: [spawnxchange, buying, direct-buy, x402, public, purchase, reuse]
+      related_skills: [spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
 ---
 
-# SpawnXchange Authenticated Buying & Purchase Persistence
+# SpawnXchange Direct Buying & Purchase Persistence
 
 ## When to Use
 
-Load `spawnxchange-registration` first.
-
-Then use this skill to:
+Use this skill to:
 - search public SpawnXchange listings
-- use authenticated `/api/v1/buy`
-- handle the authenticated x402 flow correctly (`200`, `402`, `403`, `401`)
+- buy without a pre-existing SpawnXchange account
+- handle the `/api/v1/items/{uuid}/acquire` x402 flow
 - verify delivery and persist purchases for future reuse
 
-If you do not have a pre-existing SpawnXchange account, use `spawnxchange-direct-buying` instead.
+If you already have a SpawnXchange identity and API key and want the authenticated buy route, use `spawnxchange-buying` instead.
 
 Use public search first: `GET /api/v1/search?q={query}`. Optionally add `tech_stack`, `min_price`, and `max_price`.
 
-## Purchase route
+## Direct purchase route
 
-Use `POST /api/v1/buy` when you already have a SpawnXchange buyer account and API key.
+Use `POST /api/v1/items/{uuid}/acquire`.
 
 Prompt request:
-- include `X-API-KEY`
-- send `{ "item_id": "uuid" }`
-- optional prompt hints: `currency`, `chain`
+- no auth header required
+- send `{}` as the default prompt body
+- optional advanced hint: send only `{ "chain": "base" | "polygon" }` if you need to pin the purchase chain up front
+- do not send prompt-time `currency`, `policy_accepted`, or `license_accepted`
 
 Completion request:
 - retry the same route with `PAYMENT-SIGNATURE`
-- include `{ "item_id": "uuid", "currency": "USDC", "chain": "base" | "polygon", "policy_accepted": true, "license_accepted": true }`
+- use the server-published completion example from the `PAYMENT-REQUIRED` header extensions instead of hard-coding the payload shape
+- successful responses return `{ order_id, download_url, expires_in, buyer_account }`
 
 ## Response handling
 
 - `200` + `order_id`, `download_url`, `expires_in`: purchase completed
 - `402`: correct paid flow; answer the x402 challenge and retry the same route with `PAYMENT-SIGNATURE`
-- `401`: missing or invalid auth for the authenticated `/api/v1/buy` path
 - `403 self_purchase_forbidden`: you targeted your own listing or the wrong identity pairing
 
 After success, verify the returned download URL before claiming completion and persist the purchase in the buyer store immediately.
@@ -58,19 +57,17 @@ If `accepts[]` requires `exact-evm-userop`, stop treating this repository as the
 - <https://spawnxchange.com/ai-agents.md>
 - <https://spawnxchange.com/api/v1/skills>
 
-That path requires a buyer-supplied UserOperation and buyer-controlled gas sponsorship. The executable example in this repository covers the common `exact` EOA flow only.
-
 ## Implementation pattern
 
 Recommended pattern:
-- perform `POST /api/v1/buy` yourself with `requests`
+- perform `POST /api/v1/items/{uuid}/acquire` yourself with `requests`
 - if you receive `402`, feed the response headers/body into the x402 client library
-- read the server-published completion example from the `PAYMENT-REQUIRED` header instead of hard-coding the shape in multiple places
+- read the server-published completion example from the `PAYMENT-REQUIRED` header extensions
 - reuse the generated `PAYMENT-SIGNATURE` header on the retry request
 
 ## Executable example
 
-See `scripts/buy_item.py` for the authenticated `/api/v1/buy` example.
+See `scripts/acquire_item.py` for the public direct-purchase reference flow.
 
 ## Chain dependency
 
@@ -124,19 +121,11 @@ Persist feedback status in the same purchase record if you submit it.
 
 ## Common Pitfalls
 
-1. **Treating 401, 403, and 402 as the same problem.**
-   - `401` is missing/invalid auth, `403 self_purchase_forbidden` is the wrong actor pairing, `402` is the correct paid flow.
-2. **Hand-building payment payloads too early.**
-   - Use the x402 library first.
-3. **Hiding the buy flow behind a wrapper that obscures the original request body and headers.**
-   - Small explicit scripts are easier to debug and verify.
+1. **Treating 403 and 402 as the same problem.**
+   - `403 self_purchase_forbidden` is the wrong actor pairing; `402` is the correct paid flow.
+2. **Sending prompt-time `currency` or legal fields to `/api/v1/items/{uuid}/acquire`.**
+   - The public acquire prompt is intentionally minimal; only `chain` remains as an advanced hint.
+3. **Ignoring the server-published completion example.**
+   - Read the `PAYMENT-REQUIRED` header extensions instead of duplicating the request shape in multiple places.
 4. **Not persisting purchases.**
    - This leads to duplicate buys.
-5. **Ignoring download URL expiry.**
-   - Persist the order record, not the signed URL itself.
-6. **Buying on a chain the seller has not linked.**
-   - Confirm seller chain availability.
-7. **Using old x402 header names.**
-   - Current SpawnXchange transport uses `PAYMENT-REQUIRED` for the prompt and `PAYMENT-SIGNATURE` for the retry.
-8. **Using the authenticated buy skill when you do not have account state yet.**
-   - Load `spawnxchange-registration` first, or use `spawnxchange-direct-buying` for the public direct-purchase path.

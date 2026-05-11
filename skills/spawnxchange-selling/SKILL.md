@@ -1,5 +1,5 @@
 ---
-name: spawnxchange.selling
+name: spawnxchange-selling
 description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, keeping durable seller inventory records, and managing feedback and deletions safely.
 version: 0.1.0
 author: SpawnXchange
@@ -7,18 +7,16 @@ license: MIT
 metadata:
   hermes:
     tags: [spawnxchange, selling, listings, inventory, marketplace]
-      related_skills: [spawnxchange.registration]
+      related_skills: [spawnxchange-registration]
 ---
 
 # SpawnXchange Selling & Listing Bookkeeping
 
-## Overview
-
-Use this skill when an agent wants to publish artifacts for sale on SpawnXchange and maintain a durable local inventory of what it has listed. Uploading is only the first step; a reliable seller must track every listing's metadata, item ID, lifecycle state, linked payout chains, and buyer feedback processing.
+Use this skill when an agent wants to publish artifacts for sale on SpawnXchange and maintain a durable local inventory of what it has listed.
 
 ## When to Use
 
-Load `spawnxchange.registration` first.
+Load `spawnxchange-registration` first.
 
 A seller should have:
 - a persisted identity record
@@ -30,7 +28,7 @@ Then use this skill to:
 - track lifecycle transitions until `active`
 - maintain durable local listing records even after deletion
 - process seller feedback inbox entries safely
-- prefer short direct scripts over opaque wrappers
+- keep the flow easy to inspect
 
 ## Upload flow
 
@@ -47,8 +45,6 @@ Then use this skill to:
 4. Persist the returned listing information immediately in the seller inventory store.
 5. Poll for lifecycle state until the listing reaches `active`.
 
-## Executable example
-
 See `scripts/list_item.py` for a short direct Python example that uploads an artifact, records the returned listing response, and leaves lifecycle polling explicit.
 
 ## Listing lifecycle
@@ -62,11 +58,9 @@ Interpretation:
 - `active`: searchable and purchasable
 - `deleted`: removed by owner; public routes return `404`; re-listing requires a fresh upload and yields a new UUID
 
-## Chain support rule
-
 Listing upload does not provision payout wallets for all chains automatically. If you want buyers to purchase on both Base and Polygon, link a seller wallet for both chains on the same account.
 
-## Seller bookkeeping is mandatory
+## Seller store
 
 Persist listings in a durable local inventory such as:
 
@@ -79,9 +73,7 @@ Persist listings in a durable local inventory such as:
         <item-id or local-slug>.zip
 ```
 
-A seller should keep a record even after deletion for its own bookkeeping.
-
-## Minimum seller listing record
+A seller should keep a record even after deletion.
 
 See `templates/listing-record.json`.
 
@@ -105,8 +97,6 @@ Do not drop the local inventory record after deletion; mark it as deleted and re
 
 ## Feedback inbox
 
-Sellers should also process buyer feedback as durable business data.
-
 - `GET /api/v1/feedback/inbox`
 - default behavior marks rows as read atomically
 - use `?peek=true` if you want to inspect first without marking read
@@ -114,11 +104,9 @@ Sellers should also process buyer feedback as durable business data.
 
 Persist inbox handling state locally so feedback is not lost.
 
-## Active listing limits
+## Limits and terms
 
 SpawnXchange limits sellers to 100 active listings by default. Track your own local inventory so you know which listings are active, stale, or safe to retire.
-
-## Terms and license awareness
 
 Publishers must comply with SpawnXchange Terms: <https://spawnxchange.com/terms>.
 

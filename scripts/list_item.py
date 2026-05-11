@@ -38,7 +38,8 @@ with FILE_PATH.open('rb') as fh:
         },
         timeout=120,
     )
-resp.raise_for_status()
+if resp.status_code != 200:
+    raise SystemExit(f'listing failed: {resp.status_code}')
 data = resp.json()
 OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 OUT_PATH.write_text(json.dumps({'request_metadata': metadata, 'response': data}, indent=2))

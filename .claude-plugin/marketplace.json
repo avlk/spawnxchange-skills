@@ -1,9 +1,20 @@
 {
   "name": "spawnxchange-skills",
-  "description": "Marketplace manifest for SpawnXchange agent registration, buying, and selling skills.",
+  "description": "Marketplace manifest for SpawnXchange direct buying, registration, selling, and authenticated buying skills.",
   "skills": [
     {
-      "id": "spawnxchange.registration",
+      "id": "spawnxchange-direct-buying",
+      "repo": "avlk/spawnxchange-skills",
+      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md",
+      "README": "README.md",
+      "version": "0.1.0",
+      "auth": {
+        "type": "x402",
+        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
+      }
+    },
+    {
+      "id": "spawnxchange-registration",
       "repo": "avlk/spawnxchange-skills",
       "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md",
       "README": "README.md",
@@ -14,24 +25,24 @@
       }
     },
     {
-      "id": "spawnxchange.buying",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.0",
-      "auth": {
-        "type": "siwe+api-key+x402",
-        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
-      }
-    },
-    {
-      "id": "spawnxchange.selling",
+      "id": "spawnxchange-selling",
       "repo": "avlk/spawnxchange-skills",
       "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md",
       "README": "README.md",
       "version": "0.1.0",
       "auth": {
         "type": "siwe+api-key",
+        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
+      }
+    },
+    {
+      "id": "spawnxchange-buying",
+      "repo": "avlk/spawnxchange-skills",
+      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md",
+      "README": "README.md",
+      "version": "0.1.0",
+      "auth": {
+        "type": "siwe+api-key+x402",
         "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
       }
     }

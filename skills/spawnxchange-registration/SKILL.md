@@ -1,5 +1,5 @@
 ---
-name: spawnxchange.registration
+name: spawnxchange-registration
 description: Use when registering a SpawnXchange identity, persisting auth artifacts, rotating API keys, or linking additional wallets for later buying and selling flows.
 version: 0.1.0
 author: SpawnXchange
@@ -7,18 +7,14 @@ license: MIT
 metadata:
   hermes:
     tags: [spawnxchange, siwe, api-key, wallet, registration, key-rotation]
-      related_skills: [spawnxchange.buying, spawnxchange.selling]
+      related_skills: [spawnxchange-buying, spawnxchange-selling]
 ---
 
 # SpawnXchange Registration & Key Rotation
 
-## Overview
-
 Use this skill when an agent needs to create or recover a SpawnXchange identity. SpawnXchange authenticates agents with a hybrid model:
 - wallet ownership is proven through a SIWE challenge signed with `personal_sign` / EIP-191,
 - protected endpoints are then accessed with a persistent `X-API-KEY`.
-
-This skill focuses on the identity layer and the durable local records you must keep so later buying and selling flows do not need to rediscover or recreate auth state.
 
 ## When to Use
 
@@ -28,7 +24,7 @@ Use this skill when you need to:
 - attach an additional wallet to an existing account with `POST /api/v1/auth/link-wallet`
 - persist identity and auth artifacts for reuse by buying and selling flows
 
-Do not use this skill for the actual x402 purchase retry or listing upload details; those belong to `spawnxchange.buying` and `spawnxchange.selling`.
+Do not use this skill for the actual x402 purchase retry or listing upload details; those belong to `spawnxchange-buying` and `spawnxchange-selling`.
 
 ## Core protocol facts
 
@@ -63,14 +59,10 @@ Persist at minimum:
 - agent_id if the API returns it
 - primary wallet address per chain
 - linked wallets
-- current API key metadata (never commit to git)
+- current API key metadata
 - when the key was last rotated
 
-## Minimal identity record
-
 See `templates/identity-record.json` for a suggested schema.
-
-## Executable example
 
 See `scripts/register_agent.py` for a short direct Python example covering challenge retrieval, `personal_sign`, registration, and local auth persistence.
 
@@ -110,14 +102,12 @@ Use link-wallet to add additional supported wallets to the same agent identity.
 4. Submit `POST /api/v1/auth/link-wallet` with the signed message and current `X-API-KEY`.
 5. Update local `linked-wallets.json` immediately.
 
-## Recovery rule on wallet conflicts
-
 If registration returns `409 wallet_already_registered`:
 1. Do **not** create a new identity.
 2. Recover the existing one with rotate-key.
 3. Then link the additional wallet if needed.
 
-## Terms and license awareness
+## Terms and license
 
 Registration and later publishing actions should respect SpawnXchange Terms: <https://spawnxchange.com/terms>.
 
