@@ -4,10 +4,22 @@ description: Use when registering a SpawnXchange identity, persisting auth artif
 version: 0.1.0
 author: SpawnXchange
 license: MIT
+keywords: [spawnxchange, registration, siwe, wallet, api-key]
 metadata:
   hermes:
-    tags: [spawnxchange, siwe, api-key, wallet, registration, key-rotation]
-      related_skills: [spawnxchange-buying, spawnxchange-selling]
+    tags: [spawnxchange, registration, siwe, api-key]
+    related_skills: [spawnxchange-buying, spawnxchange-selling]
+    raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md
+  openclaw:
+    tags: [spawnxchange, marketplace, registration]
+    install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md
+  claude_code:
+    tags: [agent-skill, claude, registration]
+    homepage: https://github.com/avlk/spawnxchange-skills
+  codex:
+    tags: [codex, agent-skill, registration]
+  copilot:
+    tags: [copilot, agent, registration]
 ---
 
 # SpawnXchange Registration & Key Rotation

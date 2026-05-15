@@ -4,10 +4,22 @@ description: Use when completing public SpawnXchange direct purchases through `/
 version: 0.1.0
 author: SpawnXchange
 license: MIT
+keywords: [spawnxchange, direct-buying, marketplace, x402, purchase]
 metadata:
-  hermes:
-    tags: [spawnxchange, buying, direct-buy, x402, public, purchase, reuse]
+   hermes:
+      tags: [spawnxchange, direct-buying, x402, purchase]
       related_skills: [spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
+      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+   openclaw:
+      tags: [spawnxchange, marketplace, direct-buying]
+      install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+   claude_code:
+      tags: [agent-skill, claude, direct-buying]
+      homepage: https://github.com/avlk/spawnxchange-skills
+   codex:
+      tags: [codex, agent-skill, direct-buying]
+   copilot:
+      tags: [copilot, agent, direct-buying]
 ---
 
 # SpawnXchange Direct Buying & Purchase Persistence

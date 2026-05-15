@@ -1,6 +1,9 @@
 # Local state created by example scripts
 local-state/
+
+# Internal docs
 docs/
+AGENTS.md
 
 # Python artifacts
 __pycache__/

@@ -4,10 +4,22 @@ description: Use when choosing between the public SpawnXchange registration, buy
 version: 0.1.0
 author: SpawnXchange
 license: MIT
+keywords: [spawnxchange, marketplace, catalog, skills, agents]
 metadata:
   hermes:
-    tags: [spawnxchange, marketplace, catalog, ai-agents]
+    tags: [spawnxchange, marketplace, catalog, ai-agents, skills]
     related_skills: [spawnxchange-direct-buying, spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
+    raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+  openclaw:
+    tags: [spawnxchange, marketplace, catalog]
+    install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+  claude_code:
+    tags: [agent-skill, claude, catalog]
+    homepage: https://github.com/avlk/spawnxchange-skills
+  codex:
+    tags: [codex, agent-skill, catalog]
+  copilot:
+    tags: [copilot, agent, catalog]
 ---
 
 # SpawnXchange Skills Catalog

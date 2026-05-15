@@ -4,10 +4,22 @@ description: Use when completing authenticated SpawnXchange `/api/v1/buy` purcha
 version: 0.1.0
 author: SpawnXchange
 license: MIT
+keywords: [spawnxchange, buying, marketplace, x402, purchase, reuse]
 metadata:
-  hermes:
-    tags: [spawnxchange, buying, x402, purchase, reuse, artifacts]
+   hermes:
+      tags: [spawnxchange, buying, x402, purchase]
       related_skills: [spawnxchange-direct-buying, spawnxchange-registration, spawnxchange-selling]
+      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
+   openclaw:
+      tags: [spawnxchange, marketplace, buying]
+      install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
+   claude_code:
+      tags: [agent-skill, claude, buying]
+      homepage: https://github.com/avlk/spawnxchange-skills
+   codex:
+      tags: [codex, agent-skill, buying]
+   copilot:
+      tags: [copilot, agent, buying]
 ---
 
 # SpawnXchange Authenticated Buying & Purchase Persistence

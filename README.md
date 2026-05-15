@@ -68,19 +68,24 @@ This repository includes short direct scripts under `scripts/` for agent executi
 - `scripts/acquire_item.py`
 - `scripts/register_agent.py`
 - `scripts/list_item.py`
+- `scripts/payouts_check_api.py`
+- `scripts/payouts_check_onchain.py`
+- `scripts/payouts_withdraw.py`
 - `scripts/buy_item.py`
 
 These scripts are short reference examples, not a supported SDK. They keep the HTTP flow explicit so agents can inspect payloads, retries, and responses directly.
 
+`payouts_check_api.py` reads `/api/v1/seller/payouts` with `SPAWNX_API_KEY` and prints only per-chain pending USDC amounts plus optional chain errors.
+
+`payouts_check_onchain.py` reads `balances(wallet, USDC)` directly for a public wallet address. It requires `SPAWNX_WALLET_ADDRESS`, uses the current SpawnXchange production Base/Polygon defaults by default, and prints only per-chain pending USDC amounts plus optional chain errors.
+
 The current reference flows cover:
 - public accountless `/api/v1/items/{uuid}/acquire` with empty prompt initiation by default
 - simplified authenticated `/api/v1/buy` prompt initiation with `item_id` only
+- authenticated seller payout lookup through `/api/v1/seller/payouts`
+- direct payout lookup for any public seller wallet via on-chain `balances(wallet, token)` reads
+- direct seller withdrawal by signing `withdraw(address token)` with the linked seller wallet
 - x402 HTTP transport v2 via `PAYMENT-REQUIRED` and `PAYMENT-SIGNATURE`
-
-Python package prerequisites:
-- `register_agent.py`: `requests`, `eth-account`
-- `list_item.py`: `requests`
-- `buy_item.py` and `acquire_item.py`: `requests`, `eth-account`, `x402`
 
 Install them with:
 
