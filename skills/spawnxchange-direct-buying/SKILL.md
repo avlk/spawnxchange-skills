@@ -1,28 +1,35 @@
 ---
 name: spawnxchange-direct-buying
-description: Use when completing public SpawnXchange direct purchases through `/api/v1/items/{uuid}/acquire`, verifying artifact delivery, and persisting purchases locally without pre-existing account setup.
-version: 0.1.0
+description: Use when completing public SpawnXchange direct purchases through /api/v1/items/{uuid}/acquire, verifying artifact delivery, and maintaining buyer state via the included references.
+version: 0.1.1
 author: SpawnXchange
 license: MIT
-keywords: [spawnxchange, direct-buying, marketplace, x402, purchase]
+tags: [spawnxchange, direct-buying, marketplace, x402, purchase]
+related_skills: [spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
+schema_version: 1
+source:
+   raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+   repo_url: https://github.com/avlk/spawnxchange-skills
+install:
+   method: raw
+   url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+persistence:
+   mode: local-state-required
+   note: references/purchase-store.md
+maintainers: [avlk]
 metadata:
    hermes:
-      tags: [spawnxchange, direct-buying, x402, purchase]
-      related_skills: [spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+      source:
+         raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
    openclaw:
-      tags: [spawnxchange, marketplace, direct-buying]
-      install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
-   claude_code:
-      tags: [agent-skill, claude, direct-buying]
       homepage: https://github.com/avlk/spawnxchange-skills
-   codex:
-      tags: [codex, agent-skill, direct-buying]
-   copilot:
-      tags: [copilot, agent, direct-buying]
+   claude_code:
+      homepage: https://github.com/avlk/spawnxchange-skills
+   codex: {}
+   copilot: {}
 ---
 
-# SpawnXchange Direct Buying & Purchase Persistence
+# SpawnXchange Direct Buying
 
 ## When to Use
 
@@ -30,7 +37,7 @@ Use this skill to:
 - search public SpawnXchange listings
 - buy without a pre-existing SpawnXchange account
 - handle the `/api/v1/items/{uuid}/acquire` x402 flow
-- verify delivery and persist purchases for future reuse
+- verify delivery and keep buyer state consistent for future reuse
 
 If you already have a SpawnXchange identity and API key and want the authenticated buy route, use `spawnxchange-buying` instead.
 
@@ -57,7 +64,7 @@ Completion request:
 - `402`: correct paid flow; answer the x402 challenge and retry the same route with `PAYMENT-SIGNATURE`
 - `403 self_purchase_forbidden`: you targeted your own listing or the wrong identity pairing
 
-After success, verify the returned download URL before claiming completion and persist the purchase in the buyer store immediately.
+After success, verify the returned download URL before claiming completion. This skill requires durable buyer state; see `references/purchase-store.md` for storage details.
 
 ## Which x402 scheme to use
 
@@ -65,9 +72,7 @@ The challenge returns `accepts[]`.
 - Prefer `exact` for normal EOAs. This is the best default path.
 - Use `exact-evm-userop` only when the buyer wallet is an ERC-4337 smart-contract wallet that cannot produce the EIP-3009-style authorization required by `exact`.
 
-If `accepts[]` requires `exact-evm-userop`, stop treating this repository as the full protocol source. Read the official SpawnXchange agent usage spec and machine-readable manifest before continuing:
-- <https://spawnxchange.com/ai-agents.md>
-- <https://spawnxchange.com/api/v1/skills>
+If `accepts[]` requires `exact-evm-userop`, stop treating this repository as the full protocol source. See `references/purchase-store.md` for the official documentation pointers.
 
 ## Implementation pattern
 
@@ -85,22 +90,9 @@ See `scripts/acquire_item.py` for the public direct-purchase reference flow.
 
 A purchase on a given chain only succeeds if the seller has a linked wallet for that chain.
 
-## Recommended buyer store
+## Buyer state
 
-Persist completed purchases in a durable local store such as:
-
-```text
-~/.local/share/spawnxchange/
-   agents/
-      <agent-name>/
-         purchases.jsonl
-         downloads/
-            <order-id>.zip
-```
-
-Why:
-- avoid repeat purchases
-- make reuse cheap
+This skill requires a durable local purchase store. See `references/purchase-store.md` for the recommended layout, capture fields, and verification notes.
 
 ## Minimum purchase record
 
@@ -114,22 +106,20 @@ It is recommended to capture:
 
 ## Verification and feedback
 
-Buyers should follow SpawnXchange Terms: <https://spawnxchange.com/terms>.
-
-A buyer should also review and respect the license at <https://spawnxchange.com/license> before reuse, redistribution, or derivative work.
+See `references/purchase-store.md` for policy links, verification notes, and local record guidance.
 
 After a successful buy:
 1. send `HEAD` or `GET` to the returned download URL
 2. confirm success status and expected content type
 3. cache the artifact locally if your runtime needs repeated reuse
-4. append a durable record to your purchase ledger without treating the signed URL as long-lived state
+4. update your durable purchase record as described in `references/purchase-store.md`
 
 Buyers with completed orders can later submit item feedback via `POST /api/v1/items/{uuid}/feedback`.
 - rating-only submissions auto-approve
 - text feedback enters moderation
 - only one submission per `(item, buyer)`
 
-Persist feedback status in the same purchase record if you submit it.
+Record feedback status in the same local purchase record if you submit it.
 
 ## Common Pitfalls
 
@@ -139,5 +129,5 @@ Persist feedback status in the same purchase record if you submit it.
    - The public acquire prompt is intentionally minimal; only `chain` remains as an advanced hint.
 3. **Ignoring the server-published completion example.**
    - Read the `PAYMENT-REQUIRED` header extensions instead of duplicating the request shape in multiple places.
-4. **Not persisting purchases.**
+4. **Not maintaining local purchase state.**
    - This leads to duplicate buys.

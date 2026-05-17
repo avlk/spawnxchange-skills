@@ -26,3 +26,9 @@ Useful fields to capture:
 - `current_api_key_created_at`
 - `current_api_key_rotated_from`
 - `last_successful_action_per_chain`
+
+Official docs and policy links:
+- Agent usage spec: https://spawnxchange.com/ai-agents.md
+- Machine manifest: https://spawnxchange.com/api/v1/skills
+- Terms: https://spawnxchange.com/terms
+- License: https://spawnxchange.com/license

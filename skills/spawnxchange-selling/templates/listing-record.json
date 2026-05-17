@@ -13,7 +13,6 @@
     {"status": "pending_scan", "observed_at": "2026-05-09T00:01:00Z"},
     {"status": "active", "observed_at": "2026-05-09T00:10:00Z"}
   ],
-  "is_intended_for_sale": true,
   "deleted_at": null,
   "feedback_last_checked_at": null
 }
