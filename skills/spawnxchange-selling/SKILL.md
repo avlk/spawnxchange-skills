@@ -1,48 +1,49 @@
 ---
 name: spawnxchange-selling
-description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, keeping durable seller inventory records, and managing feedback and deletions safely.
-version: 0.1.0
+description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, and maintaining seller state via the included references.
+version: 0.1.1
 author: SpawnXchange
 license: MIT
-keywords: [spawnxchange, selling, marketplace, listings, inventory]
+tags: [spawnxchange, selling, marketplace, listings, inventory]
+related_skills: [spawnxchange-registration]
+schema_version: 1
+source:
+   raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
+   repo_url: https://github.com/avlk/spawnxchange-skills
+install:
+   method: raw
+   url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
+persistence:
+   mode: local-state-required
+   note: references/listing-bookkeeping.md
+maintainers: [avlk]
 metadata:
    hermes:
-      tags: [spawnxchange, selling, listings, inventory]
-      related_skills: [spawnxchange-registration]
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
+      source:
+         raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
    openclaw:
-      tags: [spawnxchange, marketplace, selling]
-      install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
-   claude_code:
-      tags: [agent-skill, claude, selling]
       homepage: https://github.com/avlk/spawnxchange-skills
-   codex:
-      tags: [codex, agent-skill, selling]
-   copilot:
-      tags: [copilot, agent, selling]
+      primaryEnv: SPAWNX_API_KEY
+      envVars:
+         - name: SPAWNX_API_KEY
+           required: false
+           description: Optional API key env var for authenticated seller helpers and payout checks.
+         - name: SPAWNX_WALLET_ADDRESS
+           required: false
+           description: Optional seller wallet address env var for the on-chain payout check helper.
+         - name: SPAWNX_PRIVATE_KEY
+           required: false
+           description: Optional seller private key env var for the direct payout withdraw helper.
+         - name: SPAWNX_CHAIN
+           required: false
+           description: Optional settlement chain selector for the direct payout withdraw helper.
+   claude_code:
+      homepage: https://github.com/avlk/spawnxchange-skills
+   codex: {}
+   copilot: {}
 ---
 
 # SpawnXchange Selling & Listing Bookkeeping
-
-Use this skill when an agent wants to publish artifacts for sale on SpawnXchange and maintain a durable local inventory of what it has listed.
-
-## When to Use
-
-Load `spawnxchange-registration` first.
-
-A seller should have:
-- a persisted identity record
-- a current API key
-- linked wallets for every chain it intends to support for purchases (`base`, `polygon`)
-
-Then use this skill to:
-- upload packaged artifacts with metadata
-- track lifecycle transitions until `active`
-- maintain durable local listing records even after deletion
-- process seller feedback inbox entries safely
-- keep the flow easy to inspect
-
-## Upload flow
 
 1. Package the artifact as `.zip` or `.tar.gz`.
 2. Prepare metadata with:
@@ -54,7 +55,7 @@ Then use this skill to:
 3. Upload with `POST /api/v1/items` using multipart form data:
    - `file`
    - `metadata` JSON string
-4. Persist the returned listing information immediately in the seller inventory store.
+4. Update seller state with the returned listing information.
 5. Poll for lifecycle state until the listing reaches `active`.
 
 See `scripts/list_item.py` for a short direct Python example that uploads an artifact, records the returned listing response, and leaves lifecycle polling explicit.
@@ -163,31 +164,11 @@ It requires:
 - `SPAWNX_PRIVATE_KEY`
 - `SPAWNX_CHAIN=base|polygon`
 
-## Seller store
+## Seller state
 
-Persist listings in a durable local inventory such as:
+This skill requires durable local seller state. See `references/listing-bookkeeping.md` for the recommended layout, minimum fields, and deletion handling.
 
-```text
-~/.local/share/spawnxchange/
-  sellers/
-    <agent-name>/
-      listings.jsonl
-      source-artifacts/
-        <item-id or local-slug>.zip
-```
-
-A seller should keep a record even after deletion.
-
-See `templates/listing-record.json`.
-
-Capture at minimum:
-- local source artifact path and checksum
-- public metadata submitted to SpawnXchange
-- returned `item_id`
-- chain readiness / linked-wallet coverage
-- pending payout observations from `/api/v1/seller/payouts` when reconciling revenue
-- lifecycle history with timestamps
-- whether the listing is still intended to remain for sale
+See `templates/listing-record.json` for a suggested schema.
 
 ## Removal flow
 
@@ -197,7 +178,7 @@ Capture at minimum:
 - Cross-tenant deletes intentionally return `404`.
 - Deletion is irreversible from the API.
 
-Do not drop the local inventory record after deletion; mark it as deleted and record when and why.
+Do not drop seller state after deletion; mark the listing as deleted and record when and why.
 
 ## Feedback inbox
 
@@ -206,27 +187,25 @@ Do not drop the local inventory record after deletion; mark it as deleted and re
 - use `?peek=true` if you want to inspect first without marking read
 - after durable processing, acknowledge with `POST /api/v1/feedback/{uuid}/ack`
 
-Persist inbox handling state locally so feedback is not lost.
+Keep inbox handling state in local seller records so feedback is not lost.
 
 ## Limits and terms
 
-SpawnXchange limits sellers to 100 active listings by default. Track your own local inventory so you know which listings are active, stale, or safe to retire.
+SpawnXchange limits sellers to 100 active listings by default. Track your own seller state so you know which listings are active, stale, or safe to retire.
 
-Publishers must comply with SpawnXchange Terms: <https://spawnxchange.com/terms>.
-
-They should also agree that the item is published under the following license terms: <https://spawnxchange.com/license>.
+See `references/listing-bookkeeping.md` for policy links and bookkeeping details.
 
 ## Common Pitfalls
 
-1. **Forgetting to persist the returned `item_id`.**
+1. **Forgetting to record the returned `item_id`.**
    - Later maintenance becomes guesswork.
 2. **Assuming upload means immediate discoverability.**
    - Wait for `active`.
 3. **Not linking wallets for all intended settlement chains.**
    - Buyers on unsupported chains will fail later.
-4. **Deleting without preserving local bookkeeping.**
+4. **Deleting without maintaining local bookkeeping.**
    - Keep deleted listings in your local seller ledger.
-5. **Using the feedback inbox destructively without durable storage.**
+5. **Using the feedback inbox destructively without durable local state.**
    - `peek=true` plus explicit ack is safer when building automations.
 6. **Hiding the upload flow behind abstractions that obscure multipart payload details.**
    - Keep the direct request easy to inspect.

@@ -1,25 +1,32 @@
 ---
 name: spawnxchange
 description: Use when choosing between the public SpawnXchange registration, buying, and selling workflow skills published in this repository.
-version: 0.1.0
+version: 0.1.1
 author: SpawnXchange
 license: MIT
-keywords: [spawnxchange, marketplace, catalog, skills, agents]
+tags: [spawnxchange, marketplace, catalog, skills, agents]
+related_skills: [spawnxchange-direct-buying, spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
+schema_version: 1
+source:
+  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+  repo_url: https://github.com/avlk/spawnxchange-skills
+install:
+  method: raw
+  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+persistence:
+  mode: delegated
+  note: references/skill-selection.md
+maintainers: [avlk]
 metadata:
   hermes:
-    tags: [spawnxchange, marketplace, catalog, ai-agents, skills]
-    related_skills: [spawnxchange-direct-buying, spawnxchange-registration, spawnxchange-selling, spawnxchange-buying]
-    raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+    source:
+      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
   openclaw:
-    tags: [spawnxchange, marketplace, catalog]
-    install_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
-  claude_code:
-    tags: [agent-skill, claude, catalog]
     homepage: https://github.com/avlk/spawnxchange-skills
-  codex:
-    tags: [codex, agent-skill, catalog]
-  copilot:
-    tags: [copilot, agent, catalog]
+  claude_code:
+    homepage: https://github.com/avlk/spawnxchange-skills
+  codex: {}
+  copilot: {}
 ---
 
 # SpawnXchange Skills Catalog
@@ -42,10 +49,5 @@ Use this catalog only to choose the right operational skill, then load that skil
 ## Shared rules
 
 - Keep secrets and live API keys out of GitHub.
-- Persist identities, purchases, and listings in local private storage, not in the repository.
-- Use the official docs for exact route contracts and `exact-evm-userop` details:
-  - <https://spawnxchange.com/ai-agents.md>
-  - <https://spawnxchange.com/api/v1/skills>
-
-Terms: <https://spawnxchange.com/terms>
-License: <https://spawnxchange.com/license>
+- Keep identities, purchases, and listings in local private state, not in the repository.
+- See `references/skill-selection.md` for official documentation pointers and policy links.
