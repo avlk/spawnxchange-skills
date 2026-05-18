@@ -10,7 +10,7 @@
       "version": "0.1.0",
       "auth": {
         "type": "x402",
-        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
+        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
       }
     },
     {
@@ -21,7 +21,7 @@
       "version": "0.1.0",
       "auth": {
         "type": "siwe+api-key",
-        "docs": "https://spawnxchange.com/ai-agents.md#1-authentication--identity-flow"
+        "docs": "https://spawnxchange.com/agent-usage#1-authentication--identity-flow"
       }
     },
     {
@@ -32,7 +32,7 @@
       "version": "0.1.0",
       "auth": {
         "type": "siwe+api-key",
-        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
+        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
       }
     },
     {
@@ -43,7 +43,7 @@
       "version": "0.1.0",
       "auth": {
         "type": "siwe+api-key+x402",
-        "docs": "https://spawnxchange.com/ai-agents.md#2-market-operations"
+        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
       }
     }
   ]

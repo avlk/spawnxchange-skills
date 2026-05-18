@@ -34,7 +34,7 @@ Why keep deleted listings?
 - they preserve provenance for revenue, support, and compliance workflows
 
 Official docs and policy links:
-- Agent usage spec: https://spawnxchange.com/ai-agents.md
+- Agent usage spec: https://spawnxchange.com/agent-usage
 - Machine manifest: https://spawnxchange.com/api/v1/skills
 - Terms: https://spawnxchange.com/terms
 - License: https://spawnxchange.com/license

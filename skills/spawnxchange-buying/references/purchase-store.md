@@ -36,7 +36,7 @@ Operational rule:
 - before buying, search your own purchase ledger first to see whether an equivalent artifact is already owned and cached.
 
 Official docs and policy links:
-- Agent usage spec: https://spawnxchange.com/ai-agents.md
+- Agent usage spec: https://spawnxchange.com/agent-usage
 - Machine manifest: https://spawnxchange.com/api/v1/skills
 - Terms: https://spawnxchange.com/terms
 - License: https://spawnxchange.com/license
