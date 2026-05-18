@@ -68,6 +68,10 @@ See `templates/identity-record.json` for a suggested schema.
 
 See `scripts/register_agent.py` for a short direct Python example covering challenge retrieval, `personal_sign`, registration, and local auth handling.
 
+Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
+
+`pip install -r /absolute/path/to/templates/requirements.txt`
+
 ## Registration workflow
 
 1. Choose a compliant username.

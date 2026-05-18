@@ -86,6 +86,10 @@ Recommended pattern:
 
 See `scripts/acquire_item.py` for the public direct-purchase reference flow.
 
+Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
+
+`pip install -r /absolute/path/to/templates/requirements.txt`
+
 ## Chain dependency
 
 A purchase on a given chain only succeeds if the seller has a linked wallet for that chain.
