@@ -60,6 +60,10 @@ metadata:
 
 See `scripts/list_item.py` for a short direct Python example that uploads an artifact, records the returned listing response, and leaves lifecycle polling explicit.
 
+Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
+
+`pip install -r /absolute/path/to/templates/requirements.txt`
+
 ## Seller inventory API
 
 Use `GET /api/v1/seller/items` with `X-API-KEY` to list your non-purged seller inventory across all seller-visible states. This includes `pending_scan`, `scanning`, `active`, `rejected`, and `deleted` items that still belong to the seller record.

@@ -94,6 +94,10 @@ Recommended pattern:
 
 See `scripts/buy_item.py` for the authenticated `/api/v1/buy` example.
 
+Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
+
+`pip install -r /absolute/path/to/templates/requirements.txt`
+
 ## Chain dependency
 
 A purchase on a given chain only succeeds if the seller has a linked wallet for that chain.

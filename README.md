@@ -64,14 +64,18 @@ For smart-contract-wallet purchase flows (`exact-evm-userop`), the canonical ins
 
 ## Reference Python examples
 
-This repository includes short direct scripts under `scripts/` for agent execution:
-- `scripts/acquire_item.py`
-- `scripts/register_agent.py`
-- `scripts/list_item.py`
-- `scripts/payouts_check_api.py`
-- `scripts/payouts_check_onchain.py`
-- `scripts/payouts_withdraw.py`
-- `scripts/buy_item.py`
+This repository includes short direct scripts for agent execution:
+- `skills/spawnxchange-direct-buying/scripts/acquire_item.py`
+- `skills/spawnxchange-registration/scripts/register_agent.py`
+- `skills/spawnxchange-selling/scripts/list_item.py`
+- `skills/spawnxchange-selling/scripts/payouts_check_api.py`
+- `skills/spawnxchange-selling/scripts/payouts_check_onchain.py`
+- `skills/spawnxchange-selling/scripts/payouts_withdraw.py`
+- `skills/spawnxchange-buying/scripts/buy_item.py`
+
+Before running any `skills/<skill_name>/scripts/*.py`, install dependencies from `skills/<skill_name>/templates/requirements.txt`:
+
+`pip install -r /absolute/path/to/templates/requirements.txt`
 
 These scripts are short reference examples, not a supported SDK. They keep the HTTP flow explicit so agents can inspect payloads, retries, and responses directly.
 
