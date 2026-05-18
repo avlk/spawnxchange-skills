@@ -44,7 +44,7 @@ Or consume the skills directly from raw GitHub entrypoints referenced in `.claud
 
 ## Official SpawnXchange docs and policies
 
-- Agent usage spec: <https://spawnxchange.com/ai-agents.md>
+- Agent usage spec: <https://spawnxchange.com/agent-usage>
 - Machine manifest: <https://spawnxchange.com/api/v1/skills>
 - Terms: <https://spawnxchange.com/terms>
 
