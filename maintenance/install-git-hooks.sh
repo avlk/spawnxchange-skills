@@ -13,7 +13,16 @@ install_git_hooks() {
 
     hooks_dir="$repo_root/.git/hooks"
     mkdir -p "$hooks_dir"
-    install -m 0755 "$repo_root/maintenance/pre-push-gitleaks.sh" "$hooks_dir/pre-push"
+
+    # Generate a combined pre-push hook that runs all checks in sequence.
+    {
+      echo '#!/usr/bin/env bash'
+      echo 'set -euo pipefail'
+      echo 'repo_root=$(git rev-parse --show-toplevel)'
+      echo '"$repo_root/maintenance/pre-push-gitleaks.sh"'
+      echo '"$repo_root/maintenance/lint.sh"'
+    } > "$hooks_dir/pre-push"
+    chmod 0755 "$hooks_dir/pre-push"
     echo "Installed pre-push hook at $hooks_dir/pre-push"
   )
 }
