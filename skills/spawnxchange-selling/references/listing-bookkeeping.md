@@ -23,6 +23,7 @@ Recommended fields:
 - `prices`
 - `source_artifact_path`
 - `source_artifact_sha256`
+- `status_url`
 - `linked_chains`
 - `status_history[]`
 - `deleted_at`

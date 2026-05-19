@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+import argparse
 import json
-import os
+from pathlib import Path
 
 from web3 import Web3
 
@@ -35,12 +36,14 @@ WITHDRAW_ABI = [
 ]
 
 
-def withdraw_payout(private_key, chain, settings=None):
-    if chain not in {'base', 'polygon'}:
-        raise ValueError('missing or invalid chain: set SPAWNX_CHAIN=base or SPAWNX_CHAIN=polygon')
+def _load_wallet_key(path: str) -> str:
+    """Read a plain-text hex private key file, stripping whitespace."""
+    return Path(path).read_text().strip()
 
-    if settings is None:
-        settings = DEFAULT_WITHDRAW_SETTINGS
+
+def withdraw_payout(private_key, chain, settings=DEFAULT_WITHDRAW_SETTINGS):
+    if chain not in {'base', 'polygon'}:
+        raise ValueError('missing or invalid chain: use --chain base or --chain polygon')
 
     rpc_urls = settings['rpc_urls']
     marketplace_contracts = settings['marketplace_contracts']
@@ -78,17 +81,19 @@ def withdraw_payout(private_key, chain, settings=None):
     }
 
 
-def main():
-    private_key = os.environ['SPAWNX_PRIVATE_KEY']
-    chain = os.environ.get('SPAWNX_CHAIN', '').strip().lower()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Withdraw pending USDC payout from the SpawnXchange marketplace contract.'
+    )
+    parser.add_argument('--chain', required=True, choices=['base', 'polygon'],
+                        help='Chain to withdraw from')
+    parser.add_argument('--private-key-file', required=True, metavar='FILE',
+                        help='Path to plain-text file containing the hex private key')
+    args = parser.parse_args()
 
+    private_key = _load_wallet_key(args.private_key_file)
     try:
-        result = withdraw_payout(private_key, chain)
+        result = withdraw_payout(private_key, args.chain)
     except Exception as exc:
         raise SystemExit(str(exc)) from exc
-
     print(json.dumps(result, indent=2))
-
-
-if __name__ == '__main__':
-    main()

@@ -23,20 +23,6 @@ metadata:
          raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
    openclaw:
       homepage: https://github.com/avlk/spawnxchange-skills
-      primaryEnv: SPAWNX_API_KEY
-      envVars:
-         - name: SPAWNX_API_KEY
-           required: false
-           description: Optional API key env var for authenticated seller helpers and payout checks.
-         - name: SPAWNX_WALLET_ADDRESS
-           required: false
-           description: Optional seller wallet address env var for the on-chain payout check helper.
-         - name: SPAWNX_PRIVATE_KEY
-           required: false
-           description: Optional seller private key env var for the direct payout withdraw helper.
-         - name: SPAWNX_CHAIN
-           required: false
-           description: Optional settlement chain selector for the direct payout withdraw helper.
    claude_code:
       homepage: https://github.com/avlk/spawnxchange-skills
    codex: {}
@@ -135,9 +121,9 @@ Use the `payouts_check*` scripts only for the first intent. They do not withdraw
 
 See `scripts/payouts_check_api.py` for the authenticated check path. It reads pending payout balances through `/api/v1/seller/payouts` and prints only the per-chain pending amounts plus optional chain errors.
 
-It requires an API key environment variable:
+It requires:
 
-- `SPAWNX_API_KEY`
+- `--api-key-file FILE` — path to `api-key.json` written by `register_agent.py`
 
 See `scripts/payouts_check_onchain.py` for the direct blockchain check path. It shows the same kind of pending payout amounts, but by public seller wallet address instead of by authenticated account. It reads the marketplace contract directly with:
 
@@ -145,9 +131,9 @@ See `scripts/payouts_check_onchain.py` for the direct blockchain check path. It 
 balances(walletAddress, USDC_TOKEN_ADDRESS)
 ```
 
-It requires a wallet address environment variable:
+It requires:
 
-- `SPAWNX_WALLET_ADDRESS`
+- `--wallet-address ADDRESS` — on-chain seller wallet address
 
 After either check confirms there is pending balance, the seller can withdraw directly on-chain with:
 
@@ -165,8 +151,8 @@ In the common case `scripts/payouts_withdraw.py` only needs the seller private k
 
 It requires:
 
-- `SPAWNX_PRIVATE_KEY`
-- `SPAWNX_CHAIN=base|polygon`
+- `--private-key-file FILE` — path to plain-text file containing the hex private key
+- `--chain base|polygon`
 
 ## Seller state
 

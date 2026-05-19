@@ -1,16 +1,29 @@
 #!/usr/bin/env python3
+import argparse
 import json
-import os
 from decimal import Decimal
 
 from web3 import Web3
 
-DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
-DEFAULT_POLYGON_RPC_URL = 'https://polygon-bor-rpc.publicnode.com'
-DEFAULT_MARKETPLACE_CONTRACT_BASE = '0x40c815cdeadc163821d2cf784166d7fbb60e1d94'
-DEFAULT_MARKETPLACE_CONTRACT_POLYGON = '0xa54b195a0bfe298b11fc196387a41e3c331a6cbd'
-DEFAULT_USDC_ADDRESS_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-DEFAULT_USDC_ADDRESS_POLYGON = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359'
+BASE_RPC_URL = 'https://mainnet.base.org'
+POLYGON_RPC_URL = 'https://polygon-bor-rpc.publicnode.com'
+MARKETPLACE_CONTRACT_BASE = '0x40c815cdeadc163821d2cf784166d7fbb60e1d94'
+MARKETPLACE_CONTRACT_POLYGON = '0xa54b195a0bfe298b11fc196387a41e3c331a6cbd'
+USDC_ADDRESS_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+USDC_ADDRESS_POLYGON = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359'
+
+CHAIN_CONFIG = {
+    'base': {
+        'rpc_url': BASE_RPC_URL,
+        'marketplace_contract': MARKETPLACE_CONTRACT_BASE,
+        'token_address': USDC_ADDRESS_BASE,
+    },
+    'polygon': {
+        'rpc_url': POLYGON_RPC_URL,
+        'marketplace_contract': MARKETPLACE_CONTRACT_POLYGON,
+        'token_address': USDC_ADDRESS_POLYGON,
+    },
+}
 
 MARKETPLACE_ABI = [
     {
@@ -31,36 +44,8 @@ def format_amount(amount_raw):
     return format(amount.normalize(), 'f') if amount_raw else '0'
 
 
-def get_pending_payouts(wallet_address, config=None):
+def get_pending_payouts(wallet_address, config=CHAIN_CONFIG):
     wallet_address = Web3.to_checksum_address(wallet_address)
-    if config is None:
-        config = {
-            'base': {
-                'rpc_url': os.environ.get('SPAWNX_BASE_RPC_URL', DEFAULT_BASE_RPC_URL),
-                'marketplace_contract': os.environ.get(
-                    'SPAWNX_MARKETPLACE_CONTRACT_BASE',
-                    DEFAULT_MARKETPLACE_CONTRACT_BASE,
-                ),
-                'token_address': os.environ.get(
-                    'SPAWNX_USDC_ADDRESS_BASE',
-                    DEFAULT_USDC_ADDRESS_BASE,
-                ),
-            },
-            'polygon': {
-                'rpc_url': os.environ.get(
-                    'SPAWNX_POLYGON_RPC_URL',
-                    DEFAULT_POLYGON_RPC_URL,
-                ),
-                'marketplace_contract': os.environ.get(
-                    'SPAWNX_MARKETPLACE_CONTRACT_POLYGON',
-                    DEFAULT_MARKETPLACE_CONTRACT_POLYGON,
-                ),
-                'token_address': os.environ.get(
-                    'SPAWNX_USDC_ADDRESS_POLYGON',
-                    DEFAULT_USDC_ADDRESS_POLYGON,
-                ),
-            },
-        }
 
     chain_amounts = {}
     errors = {}
@@ -90,18 +75,14 @@ def get_pending_payouts(wallet_address, config=None):
     return data
 
 
-def main():
-    wallet_address = os.environ.get('SPAWNX_WALLET_ADDRESS')
-    if not wallet_address:
-        raise SystemExit('missing wallet address: set SPAWNX_WALLET_ADDRESS')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Check pending USDC payouts directly on-chain.')
+    parser.add_argument('--wallet-address', required=True,
+                        help='Seller wallet address (0x...)')
+    args = parser.parse_args()
 
     try:
-        data = get_pending_payouts(wallet_address)
+        data = get_pending_payouts(args.wallet_address)
     except Exception as exc:
         raise SystemExit(str(exc)) from exc
-
     print(json.dumps(data, indent=2))
-
-
-if __name__ == '__main__':
-    main()

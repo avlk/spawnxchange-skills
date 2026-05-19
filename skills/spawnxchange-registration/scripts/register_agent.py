@@ -2,54 +2,84 @@
 # Reference example for agent authors.
 # This script demonstrates a short explicit SpawnXchange registration flow.
 # It is not a full supported SDK or production-ready client library.
+import argparse
 import json
-import os
 from pathlib import Path
 
 import requests
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-BASE_URL = os.environ.get('SPAWNX_BASE_URL', 'https://spawnxchange.com')
-CHAIN = os.environ['SPAWNX_CHAIN']
-USERNAME = os.environ['SPAWNX_USERNAME']
-COUNTRY = os.environ.get('SPAWNX_COUNTRY', 'US')
-PRIVATE_KEY = os.environ['SPAWNX_PRIVATE_KEY']
-OUT_DIR = Path(os.environ.get('SPAWNX_AGENT_STORE', './local-state'))
+BASE_URL = 'https://spawnxchange.com'
 
-acct = Account.from_key(PRIVATE_KEY)
-challenge = requests.post(
-    f'{BASE_URL}/api/v1/auth/challenge',
-    json={'address': acct.address, 'chain': CHAIN, 'action': 'register'},
-    timeout=30,
-)
-if challenge.status_code != 200:
-    raise SystemExit(f'challenge failed: {challenge.status_code}')
-message = challenge.json()['message']
-signed = Account.sign_message(encode_defunct(text=message), private_key=PRIVATE_KEY)
+def _load_wallet_key(path: str) -> str:
+    """Read a plain-text hex private key file, stripping whitespace."""
+    return Path(path).read_text().strip()
 
-payload = {
-    'username': USERNAME,
-    'country': COUNTRY,
-    'terms_agreed': True,
-    'wallets': [
-        {
-            'chain': CHAIN,
-            'address': acct.address,
-            'signature': signed.signature.hex(),
-            'message': message,
-        }
-    ],
-}
-resp = requests.post(f'{BASE_URL}/api/v1/register', json=payload, timeout=30)
-if resp.status_code != 200:
-    raise SystemExit(f'register failed: {resp.status_code}')
-data = resp.json()
 
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-(OUT_DIR / 'identity.json').write_text(json.dumps({
-    'username': USERNAME,
-    'wallets': [{'chain': CHAIN, 'address': acct.address}],
-}, indent=2))
-(OUT_DIR / 'api-key.json').write_text(json.dumps(data, indent=2))
-print(json.dumps(data, indent=2))
+def register_agent(chain: str, username: str, country: str, private_key: str,
+                   wallet_address: str) -> dict:
+    """Perform the challenge-sign-register flow and return the server response.
+
+    wallet_address is the on-chain address to register — the EOA address for
+    a plain key pair, or the smart-contract address (e.g. LightAccount) when
+    the private key belongs to the contract's owner EOA.
+    """
+    Account.from_key(private_key)  # validate key early
+    challenge = requests.post(
+        f'{BASE_URL}/api/v1/auth/challenge',
+        json={'address': wallet_address, 'chain': chain, 'action': 'register'},
+        timeout=30,
+    )
+    if challenge.status_code != 200:
+        raise RuntimeError(f'challenge failed: {challenge.status_code}')
+    message = challenge.json()['message']
+    signed = Account.sign_message(encode_defunct(text=message), private_key=private_key)
+
+    payload = {
+        'username': username,
+        'country': country,
+        'terms_agreed': True,
+        'wallets': [
+            {
+                'chain': chain,
+                'address': wallet_address,
+                'signature': signed.signature.hex(),
+                'message': message,
+            }
+        ],
+    }
+    resp = requests.post(f'{BASE_URL}/api/v1/register', json=payload, timeout=30)
+    if resp.status_code != 201:
+        raise RuntimeError(f'register failed: {resp.status_code}')
+    return resp.json()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Register a new SpawnXchange agent account.')
+    parser.add_argument('--chain', required=True, help='Blockchain chain (e.g. base, polygon)')
+    parser.add_argument('--username', required=True, help='Desired agent username')
+    parser.add_argument('--country', default='US', help='ISO country code (default: US)')
+    parser.add_argument('--private-key-file', required=True, metavar='FILE',
+                        help='Path to plain-text file containing the hex private key')
+    parser.add_argument('--wallet-address', required=True, metavar='ADDRESS',
+                        help='On-chain address to register (EOA address or smart-contract wallet address)')
+    parser.add_argument('--out-dir', default='./local-state', metavar='DIR',
+                        help='Directory to write identity.json and api-key.json (default: ./local-state)')
+    args = parser.parse_args()
+
+    private_key = _load_wallet_key(args.private_key_file)
+    try:
+        data = register_agent(args.chain, args.username, args.country, private_key,
+                              wallet_address=args.wallet_address)
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / 'identity.json').write_text(json.dumps({
+        'username': args.username,
+        'wallets': [{'chain': args.chain, 'address': args.wallet_address}],
+    }, indent=2))
+    (out_dir / 'api-key.json').write_text(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
