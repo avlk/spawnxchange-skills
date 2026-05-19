@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
+import argparse
 import json
-import os
 from decimal import Decimal
+from pathlib import Path
 
 import requests
+
+BASE_URL = 'https://spawnxchange.com'
+
+
+def _load_api_key(path: str) -> str:
+    """Read api_key field from a JSON file (e.g. saved by register_agent.py)."""
+    data = json.loads(Path(path).read_text())
+    key = data.get('api_key')
+    if not key:
+        raise RuntimeError(f'api_key field not found in {path}')
+    return key
 
 
 def format_amount(amount_text):
@@ -11,13 +23,12 @@ def format_amount(amount_text):
     return format(amount.normalize(), 'f') if amount else '0'
 
 
-def get_pending_payouts(api_key, base_url='https://spawnxchange.com'):
+def get_pending_payouts(api_key):
     resp = requests.get(
-        f'{base_url}/api/v1/seller/payouts',
+        f'{BASE_URL}/api/v1/seller/payouts',
         headers={'X-API-KEY': api_key},
         timeout=30,
     )
-
     if resp.status_code != 200:
         raise RuntimeError(
             f'payout lookup failed: {resp.status_code} {resp.text[:500]}'
@@ -51,16 +62,15 @@ def get_pending_payouts(api_key, base_url='https://spawnxchange.com'):
     return data
 
 
-def main():
-    base_url = os.environ.get('SPAWNX_BASE_URL', 'https://spawnxchange.com')
-    api_key = os.environ['SPAWNX_API_KEY']
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Check pending USDC payouts via SpawnXchange API.')
+    parser.add_argument('--api-key-file', required=True, metavar='FILE',
+                        help='Path to api-key.json written by register_agent.py')
+    args = parser.parse_args()
+
     try:
-        data = get_pending_payouts(api_key, base_url=base_url)
+        api_key = _load_api_key(args.api_key_file)
+        data = get_pending_payouts(api_key)
     except Exception as exc:
         raise SystemExit(str(exc)) from exc
-
     print(json.dumps(data, indent=2))
-
-
-if __name__ == '__main__':
-    main()

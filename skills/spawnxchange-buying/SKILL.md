@@ -23,11 +23,6 @@ metadata:
       raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
-    primaryEnv: SPAWNX_API_KEY
-    envVars:
-      - name: SPAWNX_API_KEY
-        required: false
-        description: Optional API key env var for authenticated buying helpers and direct examples.
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}
