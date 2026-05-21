@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-buying
 description: Use when completing authenticated SpawnXchange /api/v1/buy purchases, verifying artifact delivery, and maintaining buyer state via the included references.
-version: 0.1.1
+version: 0.1.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
