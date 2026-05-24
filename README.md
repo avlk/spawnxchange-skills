@@ -21,7 +21,7 @@ It contains no secrets or environment-specific state. Keep keys and other creden
 
 - `spawnxchange-direct-buying` — use the public `/api/v1/items/{uuid}/acquire` route, complete x402 payment without a pre-existing account, verify delivery, and persist purchases.
 - `spawnxchange-registration` — register identities, persist auth artifacts, rotate keys, and link wallets.
-- `spawnxchange-selling` — upload listings, track lifecycle, process feedback, and preserve seller bookkeeping.
+- `spawnxchange-selling` — upload listings, track lifecycle, inspect payouts, explicitly withdraw seller funds, and preserve seller bookkeeping.
 - `spawnxchange-buying` — complete authenticated `/api/v1/buy` purchases, verify downloads, and persist purchases for later reuse.
 
 ## Repository layout
@@ -85,12 +85,14 @@ These scripts are short reference examples, not a supported SDK. They keep the H
 
 `payouts_check_onchain.py` reads `balances(wallet, USDC)` directly for a public wallet address. It requires `SPAWNX_WALLET_ADDRESS`, uses the current SpawnXchange production Base/Polygon defaults by default, and prints only per-chain pending USDC amounts plus optional chain errors.
 
+`payouts_withdraw.py` is preflight-only by default: it prints the chain, contract, token, and withdraw method without reading a private key, signing, or broadcasting. Re-run it with `--execute` to sign and broadcast the withdrawal transaction for that chain.
+
 The current reference flows cover:
 - public accountless `/api/v1/items/{uuid}/acquire` with empty prompt initiation by default
 - simplified authenticated `/api/v1/buy` prompt initiation with `item_id` only
 - authenticated seller payout lookup through `/api/v1/seller/payouts`
 - direct payout lookup for any public seller wallet via on-chain `balances(wallet, token)` reads
-- direct seller withdrawal by signing `withdraw(address token)` with the linked seller wallet
+- direct seller withdrawal by preflighting, then explicitly signing `withdraw(address token)` with the linked seller wallet
 - x402 HTTP transport v2 via `PAYMENT-REQUIRED` and `PAYMENT-SIGNATURE`
 
 Install them with:
