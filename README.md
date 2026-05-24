@@ -79,6 +79,8 @@ Before running any `skills/<skill_name>/scripts/*.py`, install dependencies from
 
 These scripts are short reference examples, not a supported SDK. They keep the HTTP flow explicit so agents can inspect payloads, retries, and responses directly.
 
+`acquire_item.py` is quote-first by default: it fetches and prints the x402 payment quote without reading a private key, signing, paying, or accepting legal terms. Re-run it with `--execute` to authorize the displayed payment and accept the current SpawnXchange Terms and buyer license for that purchase.
+
 `payouts_check_api.py` reads `/api/v1/seller/payouts` with `SPAWNX_API_KEY` and prints only per-chain pending USDC amounts plus optional chain errors.
 
 `payouts_check_onchain.py` reads `balances(wallet, USDC)` directly for a public wallet address. It requires `SPAWNX_WALLET_ADDRESS`, uses the current SpawnXchange production Base/Polygon defaults by default, and prints only per-chain pending USDC amounts plus optional chain errors.
@@ -96,6 +98,8 @@ Install them with:
 ```bash
 pip install -r requirements.txt
 ```
+
+Root-level `clawscan-notes.json` maps published skill IDs to ClawHub scan context. It is intentionally outside `skills/` so scan notes do not become part of the installed skill content.
 
 ## For maintainers
 

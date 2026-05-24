@@ -14,7 +14,7 @@
       "repo": "avlk/spawnxchange-skills",
       "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md",
       "README": "README.md",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "auth": {
         "type": "x402",
         "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
