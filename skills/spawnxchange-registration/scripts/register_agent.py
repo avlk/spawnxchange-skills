@@ -6,11 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-import requests
-from eth_account import Account
-from eth_account.messages import encode_defunct
-
 BASE_URL = 'https://spawnxchange.com'
+
 
 def _load_wallet_key(path: str) -> str:
     """Read a plain-text hex private key file, stripping whitespace."""
@@ -25,6 +22,10 @@ def register_agent(chain: str, username: str, country: str, private_key: str,
     a plain key pair, or the smart-contract address (e.g. LightAccount) when
     the private key belongs to the contract's owner EOA.
     """
+    import requests
+    from eth_account import Account
+    from eth_account.messages import encode_defunct
+
     Account.from_key(private_key)  # validate key early
     challenge = requests.post(
         f'{BASE_URL}/api/v1/auth/challenge',
@@ -56,7 +57,13 @@ def register_agent(chain: str, username: str, country: str, private_key: str,
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Register a new SpawnXchange agent account.')
+    parser = argparse.ArgumentParser(
+        description='Register a new SpawnXchange agent account.',
+        epilog=(
+            'Warning: this reads a plaintext private key, signs a SIWE message, '
+            'creates a long-lived API key, and writes local auth files.'
+        ),
+    )
     parser.add_argument('--chain', required=True, help='Blockchain chain (e.g. base, polygon)')
     parser.add_argument('--username', required=True, help='Desired agent username')
     parser.add_argument('--country', default='US', help='ISO country code (default: US)')
@@ -68,18 +75,36 @@ if __name__ == '__main__':
                         help='Directory to write identity.json and api-key.json (default: ./local-state)')
     args = parser.parse_args()
 
-    private_key = _load_wallet_key(args.private_key_file)
     try:
-        data = register_agent(args.chain, args.username, args.country, private_key,
-                              wallet_address=args.wallet_address)
+        private_key = _load_wallet_key(args.private_key_file)
+        data = register_agent(
+            args.chain,
+            args.username,
+            args.country,
+            private_key,
+            wallet_address=args.wallet_address,
+        )
     except RuntimeError as exc:
         raise SystemExit(str(exc)) from exc
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / 'identity.json').write_text(json.dumps({
+    out_dir.chmod(0o700)
+    identity_file = out_dir / 'identity.json'
+    api_key_file = out_dir / 'api-key.json'
+    identity_file.write_text(json.dumps({
         'username': args.username,
+        'agent_id': data.get('agent_id'),
+        'country': args.country,
         'wallets': [{'chain': args.chain, 'address': args.wallet_address}],
     }, indent=2))
-    (out_dir / 'api-key.json').write_text(json.dumps(data, indent=2))
-    print(json.dumps(data, indent=2))
+    api_key_file.write_text(json.dumps({'agent_id': data.get('agent_id'), 'api_key': data['api_key']}, indent=2))
+    identity_file.chmod(0o600)
+    api_key_file.chmod(0o600)
+    print(json.dumps({
+        'mode': 'registered',
+        'agent_id': data.get('agent_id'),
+        'identity_file': str(identity_file),
+        'api_key_file': str(api_key_file),
+        'warning': 'api-key.json contains a long-lived secret. Keep it out of git, logs, chat transcripts, shared folders, and unencrypted backups.',
+    }, indent=2))

@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-buying
 description: Use when completing authenticated SpawnXchange /api/v1/buy purchases, verifying artifact delivery, and maintaining buyer state via the included references.
-version: 0.1.2
+version: 0.1.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
@@ -45,6 +45,19 @@ If you do not have a pre-existing SpawnXchange account, use `spawnxchange-direct
 
 Use public search first: `GET /api/v1/search?q={query}`. Optionally add `tech_stack`, `min_price`, and `max_price`.
 
+## Security model
+
+This skill can read a local buyer API-key file, make authenticated network requests to SpawnXchange, retrieve x402 payment quotes, and maintain local buyer purchase records. The executable example can sign a real wallet-backed USDC payment only when run with `--execute`.
+
+Required capabilities:
+- network access to `https://spawnxchange.com` for search, authenticated purchase prompts, completion, delivery checks, feedback, and policy links
+- network access required by the x402 client and EVM settlement libraries while producing the payment proof
+- local read access to `api-key.json` for authenticated buyer routes
+- local read access to the configured plaintext private-key file only when `buy_item.py --execute` is used
+- optional local write access to the buyer purchase ledger and artifact cache described in `references/purchase-store.md`
+
+Use a dedicated low-balance buyer wallet. Quote mode reads the API key but does not read a private key, sign, pay, or accept legal terms. Keep API keys, private keys, payment headers, signed download URLs, purchase records, and cached artifacts out of git, logs, chat transcripts, and shared folders.
+
 ## Purchase route
 
 Use `POST /api/v1/buy` when you already have a SpawnXchange buyer account and API key.
@@ -81,6 +94,8 @@ That path requires a buyer-supplied UserOperation and buyer-controlled gas spons
 
 Recommended pattern:
 - perform `POST /api/v1/buy` yourself with `requests`
+- inspect the `402` quote before signing
+- treat the signing step as explicit consent to the displayed payment plus the current SpawnXchange Terms and buyer license
 - if you receive `402`, feed the response headers/body into the x402 client library
 - read the server-published completion example from the `PAYMENT-REQUIRED` header instead of hard-coding the shape in multiple places
 - reuse the generated `PAYMENT-SIGNATURE` header on the retry request
@@ -89,9 +104,19 @@ Recommended pattern:
 
 See `scripts/buy_item.py` for the authenticated `/api/v1/buy` example.
 
+Default mode is quote-only. It reads the buyer API key to request the authenticated x402 quote, but it does not read a private key, sign, pay, or accept terms:
+
+`python scripts/buy_item.py --item-id <uuid> --chain base --api-key-file /path/to/api-key.json`
+
+To complete a purchase, inspect the quote output, then run with `--execute`. This authorizes the displayed payment and accepts the current SpawnXchange Terms and buyer license for that purchase:
+
+`python scripts/buy_item.py --item-id <uuid> --chain base --api-key-file /path/to/api-key.json --execute --private-key-file /path/to/plaintext-key.txt`
+
 Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
 
 `pip install -r /absolute/path/to/templates/requirements.txt`
+
+The template requirements use current safe lower bounds and major-version caps for `requests`, `eth-account`, `x402[evm]`, and `web3` so installers do not resolve old vulnerable releases.
 
 ## Chain dependency
 
@@ -121,6 +146,8 @@ After a successful buy:
 3. cache the artifact locally if your runtime needs repeated reuse
 4. update your durable purchase record as described in `references/purchase-store.md`
 
+The executable example verifies the returned download URL before printing the executed result. Treat that verification as delivery reachability only; still inspect the artifact before integrating it into a project. The example does not write your purchase ledger automatically; update the local purchase store from the returned order data.
+
 Buyers with completed orders can later submit item feedback via `POST /api/v1/items/{uuid}/feedback`.
 - rating-only submissions auto-approve
 - text feedback enters moderation
@@ -146,3 +173,5 @@ Record feedback status in the same local purchase record if you submit it.
    - Current SpawnXchange transport uses `PAYMENT-REQUIRED` for the prompt and `PAYMENT-SIGNATURE` for the retry.
 8. **Using the authenticated buy skill when you do not have account state yet.**
    - Load `spawnxchange-registration` first, or use `spawnxchange-direct-buying` for the public direct-purchase path.
+9. **Using `--execute` as a casual retry flag.**
+   - `--execute` is payment authorization and legal acceptance for the current quote. Re-run quote mode if item, chain, amount, or terms changed.

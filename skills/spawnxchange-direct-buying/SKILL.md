@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-direct-buying
 description: Use when completing public SpawnXchange direct purchases through /api/v1/items/{uuid}/acquire, verifying artifact delivery, and maintaining buyer state via the included references.
-version: 0.1.2
+version: 0.1.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, direct-buying, marketplace, x402, purchase]
@@ -111,6 +111,8 @@ To complete a purchase, inspect the quote output, then run with `--execute`. Thi
 Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
 
 `pip install -r /absolute/path/to/templates/requirements.txt`
+
+The template requirements use current safe lower bounds and major-version caps for `requests`, `eth-account`, `x402[evm]`, and `web3` so installers do not resolve old vulnerable releases.
 
 ## Chain dependency
 

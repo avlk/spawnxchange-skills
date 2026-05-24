@@ -8,8 +8,6 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
-
 BASE_URL = 'https://spawnxchange.com'
 
 
@@ -26,17 +24,18 @@ def list_item(
     file: str | Path,
     title: str,
     description: str,
-    api_key: str,
+    api_key: str | None = None,
     *,
     tech_stack: str = 'Python',
     prompt_summary: str | None = None,
     price_usdc: float = 1.0,
     listing_record: str | Path = './local-state/last-listing.json',
+    dry_run: bool = True,
 ) -> dict:
-    """Upload an artifact and create a new SpawnXchange listing.
+    """Preview or upload an artifact and create a new SpawnXchange listing.
 
-    Returns the server response payload.  Raises RuntimeError on failure.
-    Writes a listing record JSON to *listing_record* alongside the return value.
+    Dry-run mode returns file and metadata details without uploading.
+    Execute mode returns the server response payload and writes *listing_record*.
     """
     file_path = Path(file)
     out_path = Path(listing_record)
@@ -50,6 +49,23 @@ def list_item(
     }
     if prompt_summary:
         metadata['prompt_summary'] = prompt_summary
+
+    if dry_run:
+        return {
+            'mode': 'preflight',
+            'upload_url': f'{BASE_URL}/api/v1/items',
+            'file_name': file_path.name,
+            'file_size_bytes': file_path.stat().st_size,
+            'source_artifact_sha256': sha256,
+            'metadata': metadata,
+            'warning': 'This upload sends the artifact file and metadata to SpawnXchange.',
+            'execute_instruction': 'Inspect the artifact for secrets and proprietary data, then run again with --execute to upload it.',
+        }
+
+    if not api_key:
+        raise RuntimeError('api_key is required when dry_run is false')
+
+    import requests
 
     with file_path.open('rb') as fh:
         resp = requests.post(
@@ -111,8 +127,10 @@ if __name__ == '__main__':
     parser.add_argument('--listing-record', default='./local-state/last-listing.json',
                         metavar='FILE',
                         help='Path to write the listing record (default: ./local-state/last-listing.json)')
-    parser.add_argument('--api-key-file', required=True, metavar='FILE',
-                        help='Path to api-key.json written by register_agent.py')
+    parser.add_argument('--api-key-file', metavar='FILE',
+                        help='Path to api-key.json written by register_agent.py; required with --execute')
+    parser.add_argument('--execute', action='store_true',
+                        help='Upload the artifact and metadata to SpawnXchange')
     args = parser.parse_args()
 
     description = (
@@ -127,7 +145,9 @@ if __name__ == '__main__':
     )
 
     try:
-        api_key = _load_api_key(args.api_key_file)
+        if args.execute and not args.api_key_file:
+            raise RuntimeError('--api-key-file is required with --execute')
+        api_key = _load_api_key(args.api_key_file) if args.execute else None
         data = list_item(
             args.file,
             args.title,
@@ -137,6 +157,7 @@ if __name__ == '__main__':
             prompt_summary=prompt_summary,
             price_usdc=args.price,
             listing_record=args.listing_record,
+            dry_run=not args.execute,
         )
     except RuntimeError as exc:
         raise SystemExit(str(exc)) from exc
