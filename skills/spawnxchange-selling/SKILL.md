@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
-description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, and maintaining seller state via the included references.
-version: 0.1.1
+description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, checking seller payouts, and explicitly preparing or executing seller withdrawals via the included references.
+version: 0.1.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory]
@@ -30,6 +30,19 @@ metadata:
 ---
 
 # SpawnXchange Selling & Listing Bookkeeping
+
+## Security model
+
+This skill can upload marketplace artifacts, read local API-key files, make network requests to SpawnXchange and public RPC endpoints, keep local seller records, and prepare seller payout withdrawals. The withdrawal script can sign and broadcast a live blockchain transaction only when run with `--execute`.
+
+Required capabilities:
+- network access to `https://spawnxchange.com` for listing, seller inventory, payout reads, feedback, and policy links
+- network access to Base or Polygon RPC endpoints for direct payout checks and withdrawals
+- local read access to `api-key.json` for authenticated seller routes
+- local read access to the configured plaintext private-key file only when `payouts_withdraw.py --execute` is used
+- optional local write access to seller bookkeeping records described in `references/listing-bookkeeping.md`
+
+Use a dedicated low-balance seller wallet. Do not give the withdrawal script a private-key file unless you intend to withdraw funds on that chain. Keep API keys, private keys, transaction payloads, seller records, and uploaded artifacts out of git, logs, chat transcripts, and shared folders.
 
 1. Package the artifact as `.zip` or `.tar.gz`.
 2. Prepare metadata with:
@@ -147,12 +160,15 @@ That direct transaction can be prepared manually in a wallet or sent with `scrip
 withdraw(USDC_TOKEN_ADDRESS)
 ```
 
-In the common case `scripts/payouts_withdraw.py` only needs the seller private key plus `SPAWNX_CHAIN=base|polygon`; the script uses the known SpawnXchange contract/token defaults and submits the direct `withdraw()` transaction.
+By default, `scripts/payouts_withdraw.py` is preflight-only. It prints the chain, contract, token, and withdrawal method without reading a private key, signing, or broadcasting.
+
+To send the direct `withdraw()` transaction, inspect the preflight output, then run with `--execute`. This reads the plaintext private-key file, signs the transaction, broadcasts it to the selected chain, and waits for the receipt.
 
 It requires:
 
-- `--private-key-file FILE` — path to plain-text file containing the hex private key
 - `--chain base|polygon`
+- `--execute` — required before signing and broadcasting
+- `--private-key-file FILE` — path to plain-text file containing the hex private key; required with `--execute`
 
 ## Seller state
 

@@ -1,5 +1,7 @@
 # Seller bookkeeping notes
 
+Seller records, source artifacts, API keys, withdrawal payloads, and payout history can reveal proprietary artifacts, buyer activity, wallet addresses, and revenue. Treat this directory as private local state.
+
 Suggested local layout:
 
 ```text
@@ -12,6 +14,14 @@ Suggested local layout:
 ```
 
 Maintain an append-only seller ledger even if you also keep a current-state snapshot.
+
+Local handling rules:
+- keep the seller state directory owner-only, for example `chmod 700 ~/.local/share/spawnxchange/sellers`
+- keep ledger and API-key files owner-read/write only, for example `chmod 600 listings.jsonl api-key.json`
+- do not commit seller records, API keys, private keys, signed transactions, source artifacts, or payout history
+- do not copy seller records or source artifacts into shared logs, issue trackers, chat transcripts, or unencrypted backups
+- delete cached source artifacts when they are no longer needed for provenance, support, or compliance
+- if you back up this directory, use an encrypted backup target
 
 Recommended fields:
 - `listed_at`
