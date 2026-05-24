@@ -1,0 +1,3 @@
+{
+  "spawnxchange-direct-buying": "This skill performs public SpawnXchange purchase preflight by default. The reference script does not read a private key, sign, pay, or accept legal terms unless run with --execute. Running with --execute authorizes the displayed USDC x402 payment and accepts the current SpawnXchange Terms and buyer license for that purchase. Plaintext private-key files are still supported in this version and should be kept out of git, logs, chat transcripts, shared folders, and backups. Local persistence is limited to operator-selected purchase records and optional artifact cache; signed download URLs and payment headers must not be persisted."
+}

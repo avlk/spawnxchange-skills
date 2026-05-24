@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-direct-buying
 description: Use when completing public SpawnXchange direct purchases through /api/v1/items/{uuid}/acquire, verifying artifact delivery, and maintaining buyer state via the included references.
-version: 0.1.1
+version: 0.1.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, direct-buying, marketplace, x402, purchase]
@@ -43,6 +43,18 @@ If you already have a SpawnXchange identity and API key and want the authenticat
 
 Use public search first: `GET /api/v1/search?q={query}`. Optionally add `tech_stack`, `min_price`, and `max_price`.
 
+## Security model
+
+This skill can authorize real wallet-backed USDC purchases when the executable example is run with `--execute`.
+
+Required capabilities:
+- network access to `https://spawnxchange.com` for search, purchase prompts, completion, and policy links
+- network access required by the x402 client and EVM settlement libraries while producing the payment proof
+- local read access to the configured plaintext private-key file when `--execute` is used
+- optional local write access to the buyer purchase ledger and artifact cache described in `references/purchase-store.md`
+
+Use a dedicated low-balance wallet. Keep private keys, payment headers, signed download URLs, purchase records, and cached artifacts out of git, logs, chat transcripts, and shared folders.
+
 ## Direct purchase route
 
 Use `POST /api/v1/items/{uuid}/acquire`.
@@ -56,6 +68,7 @@ Prompt request:
 Completion request:
 - retry the same route with `PAYMENT-SIGNATURE`
 - use the server-published completion example from the `PAYMENT-REQUIRED` header extensions instead of hard-coding the payload shape
+- include `policy_accepted: true` and `license_accepted: true` only when intentionally completing the purchase
 - successful responses return `{ order_id, download_url, expires_in, buyer_account }`
 
 ## Response handling
@@ -77,14 +90,23 @@ If `accepts[]` requires `exact-evm-userop`, stop treating this repository as the
 ## Implementation pattern
 
 Recommended pattern:
-- perform `POST /api/v1/items/{uuid}/acquire` yourself with `requests`
-- if you receive `402`, feed the response headers/body into the x402 client library
+- perform `POST /api/v1/items/{uuid}/acquire` yourself with `requests` and inspect the `402` quote before signing
+- treat the signing step as explicit consent to the displayed payment plus the current SpawnXchange Terms and buyer license
+- if you receive `402` and are intentionally executing the purchase, feed the response headers/body into the x402 client library
 - read the server-published completion example from the `PAYMENT-REQUIRED` header extensions
 - reuse the generated `PAYMENT-SIGNATURE` header on the retry request
 
 ## Executable example
 
 See `scripts/acquire_item.py` for the public direct-purchase reference flow.
+
+Default mode is quote-only. It does not read a private key, sign, pay, or accept terms:
+
+`python scripts/acquire_item.py --item-id <uuid> --chain base`
+
+To complete a purchase, inspect the quote output, then run with `--execute`. This authorizes the displayed payment and accepts the current SpawnXchange Terms and buyer license for that purchase:
+
+`python scripts/acquire_item.py --item-id <uuid> --chain base --execute --private-key-file /path/to/plaintext-key.txt`
 
 Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
 
@@ -118,6 +140,8 @@ After a successful buy:
 3. cache the artifact locally if your runtime needs repeated reuse
 4. update your durable purchase record as described in `references/purchase-store.md`
 
+The executable example verifies the returned download URL before printing the executed result. Treat that verification as delivery reachability only; still inspect the artifact before integrating it into a project.
+
 Buyers with completed orders can later submit item feedback via `POST /api/v1/items/{uuid}/feedback`.
 - rating-only submissions auto-approve
 - text feedback enters moderation
@@ -135,3 +159,5 @@ Record feedback status in the same local purchase record if you submit it.
    - Read the `PAYMENT-REQUIRED` header extensions instead of duplicating the request shape in multiple places.
 4. **Not maintaining local purchase state.**
    - This leads to duplicate buys.
+5. **Using `--execute` as a casual retry flag.**
+   - `--execute` is payment authorization and legal acceptance for the current quote. Re-run quote mode if item, chain, amount, or terms changed.
