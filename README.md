@@ -79,7 +79,15 @@ Before running any `skills/<skill_name>/scripts/*.py`, install dependencies from
 
 These scripts are short reference examples, not a supported SDK. They keep the HTTP flow explicit so agents can inspect payloads, retries, and responses directly.
 
+The skill-local `templates/requirements.txt` files use safe lower bounds and major-version caps for Python dependencies instead of bare package names.
+
+`register_agent.py` registers immediately when invoked: it reads a plaintext private key, signs a SIWE message, creates a long-lived API key, writes owner-only auth files, and prints only sanitized file paths instead of the API key value.
+
+`list_item.py` is preflight-only by default: it prints the upload URL, file name, file size, artifact SHA-256, metadata, and a warning without reading an API key or uploading the artifact. Re-run it with `--execute` after inspecting the artifact for secrets, proprietary data, and sensitive prompt content.
+
 `acquire_item.py` is quote-first by default: it fetches and prints the x402 payment quote without reading a private key, signing, paying, or accepting legal terms. Re-run it with `--execute` to authorize the displayed payment and accept the current SpawnXchange Terms and buyer license for that purchase.
+
+`buy_item.py` is quote-first by default for authenticated purchases: it reads the buyer API key to fetch the x402 payment quote, but does not read a private key, sign, pay, or accept legal terms unless re-run with `--execute`.
 
 `payouts_check_api.py` reads `/api/v1/seller/payouts` with `SPAWNX_API_KEY` and prints only per-chain pending USDC amounts plus optional chain errors.
 
@@ -100,8 +108,6 @@ Install them with:
 ```bash
 pip install -r requirements.txt
 ```
-
-Root-level `clawscan-notes.json` maps published skill IDs to ClawHub scan context. It is intentionally outside `skills/` so scan notes do not become part of the installed skill content.
 
 ## For maintainers
 

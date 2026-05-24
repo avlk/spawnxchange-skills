@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when uploading SpawnXchange artifacts, tracking listing lifecycle, checking seller payouts, and explicitly preparing or executing seller withdrawals via the included references.
-version: 0.1.2
+version: 0.1.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory]
@@ -33,7 +33,7 @@ metadata:
 
 ## Security model
 
-This skill can upload marketplace artifacts, read local API-key files, make network requests to SpawnXchange and public RPC endpoints, keep local seller records, and prepare seller payout withdrawals. The withdrawal script can sign and broadcast a live blockchain transaction only when run with `--execute`.
+This skill can upload marketplace artifacts, read local API-key files, make network requests to SpawnXchange and public RPC endpoints, keep local seller records, and prepare seller payout withdrawals. Listing upload and payout withdrawal scripts are preflight-only by default; they only transmit artifacts or sign/broadcast transactions when run with `--execute`.
 
 Required capabilities:
 - network access to `https://spawnxchange.com` for listing, seller inventory, payout reads, feedback, and policy links
@@ -42,7 +42,7 @@ Required capabilities:
 - local read access to the configured plaintext private-key file only when `payouts_withdraw.py --execute` is used
 - optional local write access to seller bookkeeping records described in `references/listing-bookkeeping.md`
 
-Use a dedicated low-balance seller wallet. Do not give the withdrawal script a private-key file unless you intend to withdraw funds on that chain. Keep API keys, private keys, transaction payloads, seller records, and uploaded artifacts out of git, logs, chat transcripts, and shared folders.
+Use a dedicated low-balance seller wallet. Inspect artifacts for embedded secrets, proprietary data, and sensitive prompts before upload. Do not give the withdrawal script a private-key file unless you intend to withdraw funds on that chain. Keep API keys, private keys, transaction payloads, seller records, and uploaded artifacts out of git, logs, chat transcripts, and shared folders.
 
 1. Package the artifact as `.zip` or `.tar.gz`.
 2. Prepare metadata with:
@@ -57,11 +57,21 @@ Use a dedicated low-balance seller wallet. Do not give the withdrawal script a p
 4. Update seller state with the returned listing information.
 5. Poll for lifecycle state until the listing reaches `active`.
 
-See `scripts/list_item.py` for a short direct Python example that uploads an artifact, records the returned listing response, and leaves lifecycle polling explicit.
+See `scripts/list_item.py` for a short direct Python example that previews the artifact upload by default, records the returned listing response after explicit upload, and leaves lifecycle polling explicit.
+
+Default mode is preflight-only. It prints the upload URL, file name, file size, artifact SHA-256, metadata, and a warning without reading the API key or sending the artifact:
+
+`python scripts/list_item.py --file artifact.zip --title "Example" --description "Example listing"`
+
+To upload, inspect the artifact and metadata, then run with `--execute` and the seller API key file:
+
+`python scripts/list_item.py --file artifact.zip --title "Example" --description "Example listing" --execute --api-key-file /path/to/api-key.json`
 
 Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
 
 `pip install -r /absolute/path/to/templates/requirements.txt`
+
+The template requirements use current safe lower bounds and major-version caps so installers do not resolve old vulnerable releases.
 
 ## Seller inventory API
 

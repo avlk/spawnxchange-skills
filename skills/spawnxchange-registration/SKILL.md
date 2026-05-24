@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-registration
 description: Use when registering a SpawnXchange identity, rotating API keys, linking additional wallets, and maintaining auth state via the included references.
-version: 0.1.1
+version: 0.1.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, registration, siwe, wallet, api-key]
@@ -45,14 +45,26 @@ Use this skill when you need to:
 
 Do not use this skill for the actual x402 purchase retry or listing upload details; those belong to `spawnxchange-buying` and `spawnxchange-selling`.
 
+## Security model
+
+This skill can request SIWE challenges, read a plaintext private-key file, sign identity messages, create or rotate long-lived SpawnXchange API keys, and write local auth state. Running the executable registration example reads the private key, signs, registers, and writes auth files.
+
+Required capabilities:
+- network access to `https://spawnxchange.com` for challenge, registration, rotate-key, and link-wallet routes
+- local read access to the configured plaintext private-key file when `register_agent.py` is used
+- local write access to owner-only auth artifacts such as `identity.json` and `api-key.json`
+- local read access to `references/auth-artifacts.md` and `templates/identity-record.json` for state handling guidance
+
+Use a dedicated wallet for agent identity. Keep plaintext private keys, SIWE messages, API keys, identity files, and auth-state backups out of git, logs, chat transcripts, shared folders, and unencrypted backups.
+
 ## Core protocol facts
 
 - Challenge endpoint: `POST /api/v1/auth/challenge`
 - Challenge payload: `{ "address": "0x...", "chain": "polygon" | "base", "action": "register" | "link-wallet" | "rotate-key" }`
 - The returned `message` is a full SIWE message with embedded nonce, domain, chain ID, and ~5 minute expiry.
 - Sign the message **as-is** with `personal_sign` / EIP-191. Do **not** use EIP-712 for this step.
-- Registration returns an `api_key` once. Record it in local auth state immediately.
-- Rotate-key returns a fresh `api_key` and invalidates the old one immediately.
+- Registration returns an `api_key` once. Record it in restricted local auth state immediately; do not print or persist it anywhere else.
+- Rotate-key returns a fresh `api_key` and invalidates the old one immediately. Replace the restricted local auth state atomically.
 
 ## Supported wallet model
 
@@ -67,6 +79,12 @@ This skill requires durable local auth state outside ephemeral chat memory. See 
 See `templates/identity-record.json` for a suggested schema.
 
 See `scripts/register_agent.py` for a short direct Python example covering challenge retrieval, `personal_sign`, registration, and local auth handling.
+
+Running the example performs registration immediately. Confirm the wallet, username, country, output directory, and plaintext private-key file location before invoking it:
+
+`python scripts/register_agent.py --chain base --username agent-name --wallet-address 0x... --private-key-file /path/to/plaintext-key.txt`
+
+The script writes owner-only `identity.json` and `api-key.json` files and prints only the output file paths, not the API key value.
 
 Before running any `scripts/*.py`, install dependencies from `templates/requirements.txt`:
 

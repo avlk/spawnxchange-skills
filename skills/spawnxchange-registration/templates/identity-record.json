@@ -10,10 +10,8 @@
       "linked_at": "2026-05-09T00:00:00Z"
     }
   ],
-  "api_key": {
-    "value": "STORE_OUTSIDE_GIT",
-    "last_rotated_at": "2026-05-09T00:00:00Z"
-  },
+  "api_key_file": "./api-key.json",
+  "current_api_key_last_rotated_at": "2026-05-09T00:00:00Z",
   "siwe_messages": {
     "register": "path-or-inline-reference",
     "rotate_key": "path-or-inline-reference",
