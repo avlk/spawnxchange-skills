@@ -20,7 +20,7 @@ It contains no secrets or environment-specific state. Keep keys and other creden
 ## Included skills
 
 - `spawnxchange-direct-buying` — use the public `/api/v1/items/{uuid}/acquire` route, complete x402 payment without a pre-existing account, verify delivery, and persist purchases.
-- `spawnxchange-registration` — register identities, persist auth artifacts, rotate keys, and link wallets.
+- `spawnxchange-registration` — register identities with local wallet signing, create or rotate durable API keys, persist restricted auth artifacts, and link wallets.
 - `spawnxchange-selling` — upload listings, track lifecycle, inspect payouts, explicitly withdraw seller funds, and preserve seller bookkeeping.
 - `spawnxchange-buying` — complete authenticated `/api/v1/buy` purchases, verify downloads, and persist purchases for later reuse.
 
@@ -60,7 +60,7 @@ SpawnXchange uses:
 
 See the published skills for the exact workflows and local-state conventions.
 
-For smart-contract-wallet purchase flows (`exact-evm-userop`), the canonical instructions are the official agent usage spec and machine manifest above. This repository's executable purchase example covers the common `exact` EOA path only.
+Public purchase routes advertise canonical `exact` scheme. This repository's executable purchase examples cover wallets that can sign the standard exact EIP-3009 payment; if a wallet runtime cannot do that, check the official SpawnXchange API.
 
 ## Reference Python examples
 
@@ -98,10 +98,13 @@ The skill-local `templates/requirements.txt` files use safe lower bounds and maj
 The current reference flows cover:
 - public accountless `/api/v1/items/{uuid}/acquire` with empty prompt initiation by default
 - simplified authenticated `/api/v1/buy` prompt initiation with `item_id` only
+- public discovery through `GET /api/v1/search` and `GET /api/v1/items/{uuid}`, both exposing machine-readable `available_chains`
 - authenticated seller payout lookup through `/api/v1/seller/payouts`
 - direct payout lookup for any public seller wallet via on-chain `balances(wallet, token)` reads
 - direct seller withdrawal by preflighting, then explicitly signing `withdraw(address token)` with the linked seller wallet
 - x402 HTTP transport v2 via `PAYMENT-REQUIRED` and `PAYMENT-SIGNATURE`
+
+For discovery, public search returns only active listings that are currently purchasable on at least one supported chain, returns at most 20 results per request. Each result includes top-level `available_chains`. Public item detail at `/api/v1/items/{uuid}` also exposes `available_chains`, and an active item can remain visible there with `available_chains: []` when it is temporarily not purchasable.
 
 Install them with:
 

@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-buying
 description: Use when completing authenticated SpawnXchange /api/v1/buy purchases, verifying artifact delivery, and maintaining buyer state via the included references.
-version: 0.1.4
+version: 0.1.5
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
@@ -37,6 +37,7 @@ Load `spawnxchange-registration` first.
 
 Then use this skill to:
 - search public SpawnXchange listings
+- inspect machine-readable chain availability before attempting purchase
 - use authenticated `/api/v1/buy`
 - handle the authenticated x402 flow correctly (`200`, `402`, `403`, `401`)
 - verify delivery and keep buyer state consistent for future reuse
@@ -44,6 +45,13 @@ Then use this skill to:
 If you do not have a pre-existing SpawnXchange account, use `spawnxchange-direct-buying` instead.
 
 Use public search first: `GET /api/v1/search?q={query}`. Optionally add `tech_stack`, `min_price`, and `max_price`.
+
+Discovery contract:
+- `GET /api/v1/search` returns only active listings that are currently purchasable on at least one supported chain
+- `GET /api/v1/search` returns at most 20 results per request
+- each search result includes top-level `available_chains`
+- `GET /api/v1/items/{uuid}` returns public item detail with the same top-level `available_chains` field
+- an active item can remain visible at item detail with `available_chains: []` when it is temporarily not purchasable
 
 ## Security model
 
@@ -69,7 +77,8 @@ Prompt request:
 
 Completion request:
 - retry the same route with `PAYMENT-SIGNATURE`
-- include `{ "item_id": "uuid", "currency": "USDC", "chain": "base" | "polygon", "policy_accepted": true, "license_accepted": true }`
+- include `item_id`, `chain`, `policy_accepted: true`, and `license_accepted: true`
+- `currency` defaults to `USDC` when omitted; prefer the server-published completion example from `PAYMENT-REQUIRED` over hard-coding the payload shape locally
 
 ## Response handling
 
@@ -83,12 +92,10 @@ After success, verify the returned download URL before claiming completion. This
 ## Which x402 scheme to use
 
 The challenge returns `accepts[]`.
-- Prefer `exact` for normal EOAs. This is the best default path.
-- Use `exact-evm-userop` only when the buyer wallet is an ERC-4337 smart-contract wallet that cannot produce the EIP-3009-style authorization required by `exact`.
+- Use canonical `exact`.
+- `accepts[].network` is a transport-level CAIP-2 chain id such as `eip155:8453` or `eip155:137`, not the public request slugs `base` or `polygon`.
+- The executable example in this repository covers wallets that can sign the standard exact EIP-3009 payment.
 
-If `accepts[]` requires `exact-evm-userop`, stop treating this repository as the full protocol source. See `references/purchase-store.md` for the official documentation pointers.
-
-That path requires a buyer-supplied UserOperation and buyer-controlled gas sponsorship. The executable example in this repository covers the common `exact` EOA flow only.
 
 ## Implementation pattern
 
@@ -121,6 +128,11 @@ The template requirements use current safe lower bounds and major-version caps f
 ## Chain dependency
 
 A purchase on a given chain only succeeds if the seller has a linked wallet for that chain.
+
+Prefer the discovery contract before prompting payment:
+- use `available_chains` from search results to choose a supported chain early
+- if you already know the item UUID, re-check `GET /api/v1/items/{uuid}` before purchase when chain availability matters
+- treat `available_chains: []` as visible-but-currently-unpurchasable, not as a missing item
 
 ## Buyer state
 

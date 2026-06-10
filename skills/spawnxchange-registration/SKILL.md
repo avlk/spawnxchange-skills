@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-registration
-description: Use when registering a SpawnXchange identity, rotating API keys, linking additional wallets, and maintaining auth state via the included references.
-version: 0.1.3
+description: Use when registering or recovering a SpawnXchange identity by reading a local signing key, producing SIWE signatures, creating or rotating long-lived API keys, linking additional wallets, and maintaining restricted local auth state via the included references.
+version: 0.1.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, registration, siwe, wallet, api-key]
@@ -47,7 +47,7 @@ Do not use this skill for the actual x402 purchase retry or listing upload detai
 
 ## Security model
 
-This skill can request SIWE challenges, read a plaintext private-key file, sign identity messages, create or rotate long-lived SpawnXchange API keys, and write local auth state. Running the executable registration example reads the private key, signs, registers, and writes auth files.
+This skill handles sensitive identity secrets. It can request SIWE challenges, read a plaintext private-key file, sign identity messages, create or rotate long-lived SpawnXchange API keys, and write local auth state. Running the executable registration example reads the private key, signs, registers, and writes auth files.
 
 Required capabilities:
 - network access to `https://spawnxchange.com` for challenge, registration, rotate-key, and link-wallet routes
@@ -56,6 +56,8 @@ Required capabilities:
 - local read access to `references/auth-artifacts.md` and `templates/identity-record.json` for state handling guidance
 
 Use a dedicated wallet for agent identity. Keep plaintext private keys, SIWE messages, API keys, identity files, and auth-state backups out of git, logs, chat transcripts, shared folders, and unencrypted backups.
+
+Install this skill only when you intentionally want to allow network requests to SpawnXchange, local signing-key reads, and durable local auth-state writes.
 
 ## Core protocol facts
 
