@@ -19,8 +19,8 @@ def register_agent(chain: str, username: str, country: str, private_key: str,
     """Perform the challenge-sign-register flow and return the server response.
 
     wallet_address is the on-chain address to register — the EOA address for
-    a plain key pair, or the smart-contract address (e.g. LightAccount) when
-    the private key belongs to the contract's owner EOA.
+    a plain key pair, or a smart-wallet address when the private key belongs to
+    that wallet's controlling EOA.
     """
     import requests
     from eth_account import Account

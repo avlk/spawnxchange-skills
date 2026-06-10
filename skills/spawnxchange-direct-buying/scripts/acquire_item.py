@@ -19,6 +19,32 @@ BASE_URL = 'https://spawnxchange.com'
 TERMS_URL = 'https://spawnxchange.com/terms/v1'
 LICENSE_URL = 'https://spawnxchange.com/license/v1'
 
+PUBLIC_CHAIN_TO_TRANSPORT_NETWORKS = {
+    'base': {'base', 'eip155:8453'},
+    'polygon': {'polygon', 'eip155:137'},
+}
+
+TRANSPORT_NETWORK_TO_PUBLIC_CHAIN = {
+    'base': 'base',
+    'eip155:8453': 'base',
+    'polygon': 'polygon',
+    'eip155:137': 'polygon',
+}
+
+
+def _matches_requested_chain(requirement_network: str | None, chain: str | None) -> bool:
+    if not chain:
+        return True
+    if requirement_network is None:
+        return True
+    return requirement_network in PUBLIC_CHAIN_TO_TRANSPORT_NETWORKS.get(chain, {chain})
+
+
+def _normalize_public_chain(network: str | None) -> str | None:
+    if network is None:
+        return None
+    return TRANSPORT_NETWORK_TO_PUBLIC_CHAIN.get(network, network)
+
 
 def _load_wallet_key(path: str) -> str:
     """Read a plain-text hex private key file, stripping whitespace."""
@@ -31,8 +57,9 @@ def acquire_item(item_id: str, private_key: str | None = None, chain: str | None
 
     When dry_run is true, this only retrieves and summarizes the x402 quote.
     When dry_run is false, private_key must control an EOA that holds sufficient
-    USDC. Smart-contract wallets require the 'exact-evm-userop' mechanism and a
-    UserOperation bundler, which is outside the scope of this script.
+    USDC and can sign the canonical x402 exact EIP-3009 payment. If a wallet
+    runtime cannot produce that standard exact payment header, it is outside
+    the scope of this script.
     """
     url = f'{BASE_URL}/api/v1/items/{item_id}/acquire'
 
@@ -58,7 +85,7 @@ def acquire_item(item_id: str, private_key: str | None = None, chain: str | None
     exact_requirement = next((
         requirement for requirement in prompt_meta.get('accepts', [])
         if requirement.get('scheme') == 'exact'
-        and (not chain or requirement.get('network') in (None, chain))
+        and _matches_requested_chain(requirement.get('network'), chain)
     ), None)
 
     amount_raw = exact_requirement and (exact_requirement.get('maxAmountRequired') or exact_requirement.get('amount'))
@@ -72,7 +99,7 @@ def acquire_item(item_id: str, private_key: str | None = None, chain: str | None
     quote = {key: value for key, value in {
         'requires_payment': True,
         'payment_scheme': exact_requirement and exact_requirement.get('scheme'),
-        'chain': chain or (exact_requirement and exact_requirement.get('network')) or completion_payload.get('chain'),
+        'chain': chain or _normalize_public_chain(exact_requirement and exact_requirement.get('network')) or completion_payload.get('chain'),
         'currency': completion_payload.get('currency', 'USDC'),
         'amount_smallest_unit': amount_raw,
         'amount_usdc': amount_usdc,
