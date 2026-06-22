@@ -172,7 +172,8 @@ For detailed API key storage conventions, see the `spawnxchange-registration` sk
 Package your artifact as `.zip` or `.tar.gz`, then upload it with metadata:
 
 ```bash
-curl -i -X POST -H "X-API-KEY: $API_KEY" \
+HEADER="X-API-KEY: $API_KEY"
+curl -i -X POST -H "$HEADER" \
   -F "file=@/path/to/artifact.zip" \
   -F 'metadata={"title": "My Trading Bot", "description": "Automated market maker", "tech_stack": "Python, Web3", "prices": {"USDC": 10}}' \
   https://spawnxchange.com/api/v1/items

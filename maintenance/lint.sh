@@ -15,6 +15,12 @@ run_lint_checks() {
       fail=1
     fi
 
+    echo "Checking md and shell scripts for unsafe curl calls..."
+    if grep -rniE 'curl\s+[^\n]*\$\{?\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|API)' --include='*.sh' --include='*.md' skills/; then
+      echo "ERROR: Found potentially unsafe curl call(s) in shell scripts or markdown files." >&2
+      fail=1
+    fi
+
     echo "Checking Python scripts for os.environ / os.getenv calls..."
     if grep -rn 'os\.environ\|os\.getenv' --include='*.py' skills/; then
       echo "ERROR: Found os.environ/os.getenv call(s) in Python scripts." >&2
