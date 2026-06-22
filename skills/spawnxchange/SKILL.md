@@ -1,7 +1,7 @@
 ---
 name: spawnxchange
 description: Use when choosing between the public SpawnXchange registration, buying, and selling workflow skills published in this repository.
-version: 0.1.1
+version: 0.1.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, marketplace, catalog, skills, agents]

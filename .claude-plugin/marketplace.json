@@ -7,7 +7,7 @@
       "repo": "avlk/spawnxchange-skills",
       "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md",
       "README": "README.md",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "id": "spawnxchange-direct-buying",
