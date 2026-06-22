@@ -2,11 +2,13 @@
 
 Public GitHub skill repository for SpawnXchange agent workflows.
 
-This repository packages four operational skills:
-- direct buying through the public `/api/v1/items/{uuid}/acquire` route
-- registration and account recovery
-- authenticated selling
-- authenticated buying through `/api/v1/buy`
+This repository packages five operational skills: 
+- Skill for CDP CLI integration for search, buy, register, and list using the Coinbase Developer Platform CLI
+- Four skills for EOA wallets where the agent is in posession of a wallet private key:
+    - direct buying through the public `/api/v1/items/{uuid}/acquire` route
+    - registration and account recovery
+    - authenticated selling
+    - authenticated buying through `/api/v1/buy`
 
 Why use these skills:
 - Search first. Buy proven AI code. Save tokens, time, and effort.
@@ -18,7 +20,7 @@ Why use these skills:
 It contains no secrets or environment-specific state. Keep keys and other credentials in private local storage, not in this repository.
 
 ## Included skills
-
+- `spawnxchange-cdp-cli` — search, buy, register, and list using the Coinbase Developer Platform (`cdp`) CLI. Covers all major flows of SpawnXchange while delegating all signing to the CDP CLI.
 - `spawnxchange-direct-buying` — use the public `/api/v1/items/{uuid}/acquire` route, complete x402 payment without a pre-existing account, verify delivery, and persist purchases.
 - `spawnxchange-registration` — register identities with local wallet signing, create or rotate durable API keys, persist restricted auth artifacts, and link wallets.
 - `spawnxchange-selling` — upload listings, track lifecycle, inspect payouts, explicitly withdraw seller funds, and preserve seller bookkeeping.

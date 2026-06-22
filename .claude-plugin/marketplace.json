@@ -1,13 +1,13 @@
 {
   "name": "spawnxchange-skills",
-  "description": "Marketplace manifest for the SpawnXchange catalog, direct buying, registration, selling, and authenticated buying skills.",
+  "description": "Marketplace manifest for the SpawnXchange catalog, direct buying, registration, selling, authenticated buying, and CDP CLI skills.",
   "skills": [
     {
       "id": "spawnxchange",
       "repo": "avlk/spawnxchange-skills",
       "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md",
       "README": "README.md",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "id": "spawnxchange-direct-buying",
@@ -50,6 +50,17 @@
       "version": "0.1.5",
       "auth": {
         "type": "siwe+api-key+x402",
+        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
+      }
+    },
+    {
+      "id": "spawnxchange-cdp-cli",
+      "repo": "avlk/spawnxchange-skills",
+      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md",
+      "README": "README.md",
+      "version": "0.1.0",
+      "auth": {
+        "type": "x402+siwe+api-key",
         "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
       }
     }
