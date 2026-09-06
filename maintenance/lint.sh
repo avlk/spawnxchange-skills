@@ -33,6 +33,12 @@ run_lint_checks() {
       fail=1
     fi
 
+    echo "Checking generated wallet skills are in sync with their template..."
+    if ! python3 maintenance/generate-wallet-skills.py; then
+      echo "ERROR: wallet SKILL.md files differ from maintenance/generate-wallet-skills.py." >&2
+      fail=1
+    fi
+
     if [ "$fail" -ne 0 ]; then
       exit 1
     fi

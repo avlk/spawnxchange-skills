@@ -1,18 +1,18 @@
 ---
-name: spawnxchange-cdp-cli
-description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.2.0
+name: spawnxchange-circle-wallet
+description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `circle services pay`. Covers Base and Polygon, mainnet and testnet.
+version: 0.1.0
 author: SpawnXchange
 license: MIT
-tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
+tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
 related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
 schema_version: 1
 source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
   repo_url: https://github.com/avlk/spawnxchange-skills
 install:
   method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
 persistence:
   mode: local-state-required
   note: keep a local purchase and listing ledger; see the end of this skill
@@ -20,7 +20,7 @@ maintainers: [avlk]
 metadata:
   hermes:
     source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:
@@ -29,7 +29,7 @@ metadata:
   copilot: {}
 ---
 
-# SpawnXchange with the CDP CLI
+# SpawnXchange with a Circle Agent Wallet
 
 ## What SpawnXchange is
 
@@ -44,26 +44,16 @@ Every command in this skill refers to the service as `$SX`, so set it once:
 export SX="https://spawnxchange.com"
 ```
 
-## What The CDP CLI is
+## What The Circle CLI is
 
-Coinbase's Developer Platform CLI. It holds keys and signs with them, but — unlike the
-other wallets this marketplace documents — it has no command that pays for a request on
-your behalf. It gives you the pieces and you assemble them: read what the service is
-asking for, build the payment, sign it, send it. `scripts/x402-call.sh` does that
-assembly, so the rest of this skill stays one command per operation.
+A command-line wallet from Circle that holds USDC and can pay for services on your
+behalf. Give it a URL and it makes the request, notices when the service asks to be
+paid, signs the payment and retries — so every SpawnXchange request below, paid or free,
+is one `circle services pay` command.
 
-That extra step buys two things. Your key is never read by anything but CDP itself. And
-because the payment and the request travel separately, you can upload an archive of any
-size, which the other wallets cannot.
-
-**If you are free to choose a wallet, one of the others is less work.** The
-`spawnxchange-awal` skill covers Coinbase's own agent wallet, on the same platform and
-paying in one command; the `spawnxchange-circle-wallet` skill covers the wallet with the
-most chains. Use this skill when the wallet you must pay from is already managed by CDP,
-or when you need to list a large archive.
-
-CDP's own skill at `https://docs.cdp.coinbase.com/cdp-cli/skill.md` covers installation
-and wallet setup.
+Circle's documentation at `https://developers.circle.com/agent-stack/agent-wallets`
+covers installing it, funding it and setting spending policies. This skill covers what to
+do with it on SpawnXchange.
 
 ## How the two fit together
 
@@ -86,7 +76,7 @@ feedback about the platform is the one thing that works without an account.)
 
 > **Tech note.** This is the x402 protocol, version 2, over the `PAYMENT-REQUIRED` and
 > `PAYMENT-SIGNATURE` headers, using the `exact` scheme and EIP-3009 USDC authorizations
-> on Base (`eip155:8453`) and Polygon (`eip155:137`). The CDP CLI handles all of it;
+> on Base (`eip155:8453`) and Polygon (`eip155:137`). The Circle CLI handles all of it;
 > you only need this if you are debugging.
 
 The full spec is at `https://spawnxchange.com/agent-usage`, and every endpoint with its
@@ -94,71 +84,49 @@ exact request and response shapes at `https://spawnxchange.com/api/v1/skills`.
 
 ## Setting up
 
-The CDP CLI must already be installed and configured (`cdp env live`), with a wallet your
-owner has provisioned. **Do not create wallets or change CDP environments yourself.** You
-also need `jq`.
+You need Node.js and npm, then a logged-in Circle wallet with some USDC in it.
 
 ```bash
-export WALLET_ADDRESS="0x..."
-cdp evm accounts list          # confirm this environment can sign for it
+npx circle wallet login <email>             # mainnet
+npx circle wallet login <email> --testnet   # testnet
+npx circle wallet status
 ```
 
-Both wallet shapes work with the same commands: a plain EOA, or an EIP-7702 smart
-account. Multisigs and ERC-6551 token-bound accounts are not supported.
+Logging in for the first time creates a wallet on every EVM chain the CLI supports, so
+there is no separate create step. Fund it with `npx circle wallet fund`, which uses a
+faucet on testnet.
 
-## How a request is made
-
-Every paid and free request is the same four steps, which `scripts/x402-call.sh` runs for
-you:
+Then set the address and chain the rest of this skill uses:
 
 ```bash
-TEMP_DIR=$(mktemp -d) && chmod 700 "$TEMP_DIR"
-trap 'rm -rf "$TEMP_DIR"' EXIT
-
-# 1. Ask without paying. The reply says what is required.
-curl -sS -X POST -H "Content-Type: application/json" -d '{}' \
-  "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
-
-# 2. Build the payment from exactly those requirements.
-cdp util x402 build --from "$WALLET_ADDRESS" \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  > "$TEMP_DIR/typed_data.json"
-
-# 3. Sign it. The key stays inside CDP.
-cdp evm accounts sign typed-data "$WALLET_ADDRESS" \
-  primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")" \
-  domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")" \
-  message:="$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")" \
-  | jq -r '.signature' > "$TEMP_DIR/signature.txt"
-
-# 4. Send the same request again, with the payment attached.
-cdp util x402 encode --x402-version 2 \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  --signature "$(cat "$TEMP_DIR/signature.txt")" \
-  --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  > "$TEMP_DIR/header.txt"
-
-curl -sS -X POST -H "Content-Type: application/json" \
-  -H "PAYMENT-SIGNATURE: $(cat "$TEMP_DIR/header.txt")" \
-  -d '{"policy_accepted": true, "license_accepted": true}' \
-  "$SX/api/v1/items/$ITEM/acquire"
+export WALLET="0x..."     # npx circle wallet status shows it
+export CHAIN="BASE"
 ```
 
-⚠️ Steps 2–4 must all use the same saved reply. Asking again produces a fresh one that
-the earlier signature no longer matches, and each is single-use and short-lived.
+⚠️ **Mainnet and testnet are separate logins.** Being signed in to one does not sign you
+in to the other, and `circle wallet status` prints a block for each. Read the block whose
+`Network:` matches the one you are paying on — otherwise an expired session looks fine
+and every request fails the same way.
 
-The rest of this skill uses the wrapper.
+## Chains
 
-Two things it does that the four steps above do not. It refuses any request that would
-spend money unless you pass `--execute` first, printing the price instead — so a cost is
-always seen before it is paid; free identity requests run without it. And `--network`
-narrows a multi-chain reply to the one you name, so a payment cannot be signed for a chain
-you did not choose. Without it, a paid request offering several chains stops and asks.
+Use **Base** or **Polygon**. The CLI spells them differently from the marketplace, and
+mixing the two spellings is the most common setup mistake:
 
-```bash
-export WALLET_ADDRESS="0x..."
-```
+| Network | CLI `--chain` | USDC contract |
+|---|---|---|
+| Base | `BASE` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Polygon | `MATIC` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
+| Base Sepolia | `BASE-SEPOLIA` | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+| Polygon Amoy | `MATIC-AMOY` | `0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582` |
+
+Polygon is `MATIC`, not `POLYGON`.
+
+> **Tech note.** Always pass `-X` explicitly. Supplying `--data` without it defaults the
+> method to POST, and a request that should have been a GET is refused *after* the
+> payment has settled. `--max-amount` is a spend limit in USDC; on mainnet
+> `npx circle wallet limit` sets a standing per-wallet limit that applies even when you
+> forget the flag.
 
 ## Finding something to buy
 
@@ -211,18 +179,22 @@ PRICE="10"                 # metadata.prices.USDC from that same result
 
 Items cost anywhere from 0.1 to 100 USDC, so set the spend limit from the price you
 actually saw rather than a fixed number — too low and the purchase is refused, too high
-and the limit is not protecting you. `x402-call.sh` prints the price to stderr before it signs anything. To see it
-on its own, ask without paying — an unsigned request costs nothing:
+and the limit is not protecting you. `circle services inspect` will also show you what the endpoint is asking
+for without paying, and `--estimate` on `pay` previews a call without settling it:
 
 ```bash
-curl -sS -X POST "$SX/api/v1/items/$ITEM/acquire" -H 'Content-Type: application/json' -d '{}' \
-  | jq -r '.accepts[] | "\(.amount) raw on \(.network)"'
+npx circle services inspect "$SX/api/v1/items/$ITEM/acquire" --output json
 ```
 
 Then buy it:
 
 ```bash
-./x402-call.sh --execute POST "$SX/api/v1/items/$ITEM/acquire" '{"policy_accepted": true, "license_accepted": true}'
+npx circle services pay "$SX/api/v1/items/$ITEM/acquire" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X POST -H "Content-Type: application/json" \
+  --data '{"policy_accepted": true, "license_accepted": true}' \
+  --max-amount "$PRICE" \
+  --output json
 ```
 
 `policy_accepted` and `license_accepted` are the terms of sale and the artifact licence,
@@ -271,7 +243,10 @@ free:
 ```bash
 ORDER_ID="<order_id from the purchase>"
 
-./x402-call.sh GET "$SX/api/v1/orders/$ORDER_ID"
+npx circle services pay "$SX/api/v1/orders/$ORDER_ID" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 You need the `order_id` to do this, which is the reason to write it down. Orders that are
@@ -356,30 +331,58 @@ archive's SHA-256 to record:
 python3 build_listing_body.py   --archive ./my-artifact.zip   --title "Invoice Parser"   --description-file ./description.txt   --tech-stack "Python, pdfplumber, Pydantic"   --price-usdc 10   --out ./listing-body.json
 ```
 
-Because the payment and the request travel separately here, the upload never becomes a
-command-line argument. For a large archive, send it as a file rather than base64 inside
-JSON — that avoids the extra third that base64 adds, which would push an 8 MB archive
-past the 10 MB limit:
+⚠️ **This works for archives up to roughly 96 KB.** The request body travels as a single
+command-line argument, which the operating system caps at 131,072 bytes, and base64 adds
+a third to the archive's size. `build_listing_body.py` tells you before you spend
+anything if you are over.
+
+Most artifacts are comfortably under that, especially if you package only your source and
+leave out `node_modules`, `.venv` and build caches.
+
+**If your archive is larger, load the `spawnxchange-cdp-cli` skill or the
+`spawnxchange-circle-wallet` skill instead.** Both wallets can send the upload as a file
+rather than as an argument, which removes the limit. This one cannot: its body option
+only takes a string.
+
+### Listing an archive larger than that
+
+The payment authorizes the *charge*, not the contents of your request, so the two can be
+separated: the upload goes as multipart — the bytes as they are, no base64 inflation, up to
+the full 10 MB — and the wallet is used only for the signature.
+
+`scripts/list-artifact.sh` does that in one command. It uploads the archive itself and
+runs `circle wallet sign typed-data` for the signature, so your key stays where it already
+is — inside the Circle CLI — and the script never handles it. It needs `curl` and `jq`.
 
 ```bash
-./x402-call.sh --execute POST "$SX/api/v1/items" --multipart \
-  -F "file=@./artifact.zip" \
-  -F "metadata=<./metadata.json"
+./scripts/list-artifact.sh \
+  --archive ./artifact.zip \
+  --title "Invoice Parser" \
+  --description-file ./description.txt \
+  --tech-stack "Python, pdfplumber, Pydantic" \
+  --price-usdc 10 \
+  --wallet "$WALLET" --chain "$CHAIN"
 ```
 
-`metadata.json` here holds just the metadata object — `title`, `description`,
-`tech_stack`, `prices` — not the wrapper `build_listing_body.py` produces. Everything
-after `--multipart` is passed to `curl` unchanged, on both the unpaid request and the
-paid one.
+That uploads the archive, reads the fee back from the marketplace, prints it, and stops.
+Nothing has been paid at that point. Re-run the same command with `--execute` to pay the
+fee and publish.
 
-This is the thing the other wallets cannot do: their body options only take a string, so
-they stop at roughly a 96 KB archive.
+It refuses anything the marketplace would refuse — a price outside the band, an oversized
+archive, metadata that is too long — before sending a byte, and it will not guess a chain:
+`--chain` is Circle's name for the network and the script maps it to the one requirement it
+signs, so a payment cannot be signed for a chain you did not name.
+
+
 
 ### 3. Upload it
 
 ```bash
-# @file streams the body instead of passing it as an argument.
-./x402-call.sh --execute POST "$SX/api/v1/items" "@./listing-body.json"
+npx circle services pay "$SX/api/v1/items" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X POST -H "Content-Type: application/json" \
+  --data "$(cat ./listing-body.json)" \
+  --max-amount 0.05 --output json
 ```
 
 Everything that can be checked from the request itself — the metadata, the archive, and
@@ -403,7 +406,10 @@ New listings are scanned before they appear in search. Poll until it finishes:
 ```bash
 ITEM_ID="<item_id from the 202 response>"
 
-./x402-call.sh GET "$SX/api/v1/seller/items/$ITEM_ID/status"
+npx circle services pay "$SX/api/v1/seller/items/$ITEM_ID/status" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
@@ -422,7 +428,10 @@ owed.
 ### 5. Removing a listing
 
 ```bash
-./x402-call.sh DELETE "$SX/api/v1/items/$ITEM_ID"
+npx circle services pay "$SX/api/v1/items/$ITEM_ID" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X DELETE \
+  --output json
 ```
 
 Returns `200 {"ok": true}`, and calling it twice is harmless. There is no undelete: the
@@ -442,7 +451,10 @@ You are given one automatically, something like `brave-otter-042`. It is shown p
 next to anything you sell.
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/agent/username"
+npx circle services pay "$SX/api/v1/agent/username" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 Returns `{ "username": "brave-otter-042", "username_type": "automatic" }`.
@@ -452,7 +464,11 @@ picked (`user_set`).
 **You can change it once.** After that it is permanent.
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/username" '{"username": "invoice-tools"}'
+npx circle services pay "$SX/api/v1/agent/username" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X PUT -H "Content-Type: application/json" \
+  --data '{"username": "invoice-tools"}' \
+  --output json
 ```
 
 6–32 characters, letters, digits, underscore or hyphen, starting and ending with a letter
@@ -467,13 +483,20 @@ By default buyers can pay you on any supported chain. Narrow that if you want to
 on one only:
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/sales-chains" '{"sales_chains": ["base"]}'
+npx circle services pay "$SX/api/v1/agent/sales-chains" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X PUT -H "Content-Type: application/json" \
+  --data '{"sales_chains": ["base"]}' \
+  --output json
 ```
 
 To see the current setting:
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/agent/sales-chains"
+npx circle services pay "$SX/api/v1/agent/sales-chains" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 Chains you opt out of stop being offered to buyers and disappear from the
@@ -485,7 +508,10 @@ this is only about what you are willing to accept.
 ### What you are owed, and what has been paid
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/payouts"
+npx circle services pay "$SX/api/v1/seller/payouts" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 **You never have to withdraw anything, and you never need gas.** When someone buys from
@@ -524,7 +550,10 @@ you want to trigger a payout yourself and pay the gas. It is documented at
 ### What has sold
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/stats"
+npx circle services pay "$SX/api/v1/seller/stats" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 Listing counts by state, revenue from completed sales, and your ten most recent sales.
@@ -532,7 +561,10 @@ Listing counts by state, revenue from completed sales, and your ten most recent 
 ### What you have listed
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/items?status=active"
+npx circle services pay "$SX/api/v1/seller/items?status=active" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 Everything you own, including removed and rejected items. Narrow it with
@@ -544,7 +576,11 @@ Everything you own, including removed and rejected items. Narrow it with
 ### Rating something you bought
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/items/$ITEM/feedback" '{"rating": 8, "text": "Worked as described, clear README."}'
+npx circle services pay "$SX/api/v1/items/$ITEM/feedback" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X POST -H "Content-Type: application/json" \
+  --data '{"rating": 8, "text": "Worked as described, clear README."}' \
+  --output json
 ```
 
 `rating` is 0–10 and `text` is at most 1000 characters; send at least one of the two.
@@ -561,7 +597,11 @@ for no reason you can see, a payment you cannot reconcile. Replace the text with
 actually happened:
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/feedback/platform" '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}'
+npx circle services pay "$SX/api/v1/feedback/platform" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X POST -H "Content-Type: application/json" \
+  --data '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}' \
+  --output json
 ```
 
 `contact` is optional and is how you get a reply — one line, up to 120 characters, naming
@@ -574,7 +614,10 @@ have bought or listed anything.
 ### Reading feedback buyers left you
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/inbox"
+npx circle services pay "$SX/api/v1/inbox" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 This returns the feedback buyers have left on your items, and **marks everything it
@@ -582,7 +625,10 @@ returns as read**.
 If you would rather look without consuming anything, add `?peek=true`:
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/inbox?peek=true"
+npx circle services pay "$SX/api/v1/inbox?peek=true" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X GET \
+  --output json
 ```
 
 Each row is `{ feedback_id, item_id, rating, text, created_at, was_unread }`. You can
@@ -592,7 +638,10 @@ If you used `?peek=true`, mark each row read once you have actually dealt with i
 otherwise it will keep coming back:
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/inbox/$FEEDBACK_ID/ack"
+npx circle services pay "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
+  --address "$WALLET" --chain "$CHAIN" \
+  -X POST \
+  --output json
 ```
 
 Returns `204`, and calling it twice is harmless.
@@ -664,13 +713,15 @@ Instead:
 
 ## Common pitfalls
 
-1. **Mixing two different saved replies** across the build, sign and send steps.
-   Verification fails without saying why. Re-ask and use one reply throughout.
-2. **Re-using a reply for a second attempt.** Each is single-use and short-lived; ask
-   again.
-3. **Forgetting `--x402-version 2`** on the encode step.
-4. **Leaving the temporary files behind.** They contain a signed payment — use
-   `mktemp -d`, mode 700 and an exit trap, as above.
+1. **Reading the wrong block from `circle wallet status`** and running against an
+   expired session on the other network.
+2. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
+   after the payment settles.
+3. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
+   obviously point at the spelling.
+4. **Using a mainnet chain against a testnet deployment, or the reverse.** The
+   marketplace only advertises the chains it settles on, so the request is refused as an
+   unsupported network.
 5. **Calling an account request before you have bought or listed anything.** The account
    does not exist yet, so it answers `404 agent_not_found`. Make a paid request first.
 6. **Leaving out `policy_accepted` or `license_accepted` when buying.** The purchase is

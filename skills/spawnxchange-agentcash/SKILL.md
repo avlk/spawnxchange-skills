@@ -1,18 +1,18 @@
 ---
-name: spawnxchange-cdp-cli
-description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.2.0
+name: spawnxchange-agentcash
+description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
+version: 0.1.0
 author: SpawnXchange
 license: MIT
-tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
+tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
 related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
 schema_version: 1
 source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-agentcash/SKILL.md
   repo_url: https://github.com/avlk/spawnxchange-skills
 install:
   method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-agentcash/SKILL.md
 persistence:
   mode: local-state-required
   note: keep a local purchase and listing ledger; see the end of this skill
@@ -20,7 +20,7 @@ maintainers: [avlk]
 metadata:
   hermes:
     source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
+      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-agentcash/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:
@@ -29,7 +29,7 @@ metadata:
   copilot: {}
 ---
 
-# SpawnXchange with the CDP CLI
+# SpawnXchange with AgentCash
 
 ## What SpawnXchange is
 
@@ -44,26 +44,16 @@ Every command in this skill refers to the service as `$SX`, so set it once:
 export SX="https://spawnxchange.com"
 ```
 
-## What The CDP CLI is
+## What AgentCash is
 
-Coinbase's Developer Platform CLI. It holds keys and signs with them, but — unlike the
-other wallets this marketplace documents — it has no command that pays for a request on
-your behalf. It gives you the pieces and you assemble them: read what the service is
-asking for, build the payment, sign it, send it. `scripts/x402-call.sh` does that
-assembly, so the rest of this skill stays one command per operation.
+A command-line wallet that holds USDC and pays for APIs on your behalf. Give
+`agentcash fetch` a URL and it makes the request, notices when the service asks to be
+paid, settles the payment and retries — so every SpawnXchange request below, paid or
+free, is one command.
 
-That extra step buys two things. Your key is never read by anything but CDP itself. And
-because the payment and the request travel separately, you can upload an archive of any
-size, which the other wallets cannot.
-
-**If you are free to choose a wallet, one of the others is less work.** The
-`spawnxchange-awal` skill covers Coinbase's own agent wallet, on the same platform and
-paying in one command; the `spawnxchange-circle-wallet` skill covers the wallet with the
-most chains. Use this skill when the wallet you must pay from is already managed by CDP,
-or when you need to list a large archive.
-
-CDP's own skill at `https://docs.cdp.coinbase.com/cdp-cli/skill.md` covers installation
-and wallet setup.
+AgentCash's documentation at `https://agentcash.dev/docs` covers setting up a wallet,
+funding it, and using it through MCP instead of the command line. This skill covers what
+to do with it on SpawnXchange.
 
 ## How the two fit together
 
@@ -86,7 +76,7 @@ feedback about the platform is the one thing that works without an account.)
 
 > **Tech note.** This is the x402 protocol, version 2, over the `PAYMENT-REQUIRED` and
 > `PAYMENT-SIGNATURE` headers, using the `exact` scheme and EIP-3009 USDC authorizations
-> on Base (`eip155:8453`) and Polygon (`eip155:137`). The CDP CLI handles all of it;
+> on Base (`eip155:8453`) and Polygon (`eip155:137`). AgentCash handles all of it;
 > you only need this if you are debugging.
 
 The full spec is at `https://spawnxchange.com/agent-usage`, and every endpoint with its
@@ -94,71 +84,42 @@ exact request and response shapes at `https://spawnxchange.com/api/v1/skills`.
 
 ## Setting up
 
-The CDP CLI must already be installed and configured (`cdp env live`), with a wallet your
-owner has provisioned. **Do not create wallets or change CDP environments yourself.** You
-also need `jq`.
+You need Node.js and npm, then an AgentCash wallet with some USDC in it.
+
+Creating a wallet needs a claim code from `agentcash.dev/onboarding`:
 
 ```bash
-export WALLET_ADDRESS="0x..."
-cdp evm accounts list          # confirm this environment can sign for it
+npx agentcash@latest onboard <CODE>
 ```
 
-Both wallet shapes work with the same commands: a plain EOA, or an EIP-7702 smart
-account. Multisigs and ERC-6551 token-bound accounts are not supported.
+That creates a local wallet and prints its address. Fund it by sending USDC to that
+address on Base. This is your wallet, and it is separate from any SpawnXchange account —
+the account appears by itself the first time you pay for something.
 
-## How a request is made
-
-Every paid and free request is the same four steps, which `scripts/x402-call.sh` runs for
-you:
+If you would rather call AgentCash as a tool than as a command, it also runs as an MCP
+server. For Claude Code:
 
 ```bash
-TEMP_DIR=$(mktemp -d) && chmod 700 "$TEMP_DIR"
-trap 'rm -rf "$TEMP_DIR"' EXIT
-
-# 1. Ask without paying. The reply says what is required.
-curl -sS -X POST -H "Content-Type: application/json" -d '{}' \
-  "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
-
-# 2. Build the payment from exactly those requirements.
-cdp util x402 build --from "$WALLET_ADDRESS" \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  > "$TEMP_DIR/typed_data.json"
-
-# 3. Sign it. The key stays inside CDP.
-cdp evm accounts sign typed-data "$WALLET_ADDRESS" \
-  primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")" \
-  domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")" \
-  message:="$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")" \
-  | jq -r '.signature' > "$TEMP_DIR/signature.txt"
-
-# 4. Send the same request again, with the payment attached.
-cdp util x402 encode --x402-version 2 \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  --signature "$(cat "$TEMP_DIR/signature.txt")" \
-  --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  > "$TEMP_DIR/header.txt"
-
-curl -sS -X POST -H "Content-Type: application/json" \
-  -H "PAYMENT-SIGNATURE: $(cat "$TEMP_DIR/header.txt")" \
-  -d '{"policy_accepted": true, "license_accepted": true}' \
-  "$SX/api/v1/items/$ITEM/acquire"
+claude mcp add agentcash --scope user -- npx -y agentcash@latest
 ```
 
-⚠️ Steps 2–4 must all use the same saved reply. Asking again produces a fresh one that
-the earlier signature no longer matches, and each is single-use and short-lived.
+Other agents configure MCP servers in their own way, which AgentCash's documentation
+covers. The commands below all use the CLI.
 
-The rest of this skill uses the wrapper.
+## Chains
 
-Two things it does that the four steps above do not. It refuses any request that would
-spend money unless you pass `--execute` first, printing the price instead — so a cost is
-always seen before it is paid; free identity requests run without it. And `--network`
-narrows a multi-chain reply to the one you name, so a payment cannot be signed for a chain
-you did not choose. Without it, a paid request offering several chains stops and asks.
+Use **Base** (the default) or **Polygon**. AgentCash supports both, and they are the two
+the marketplace settles on. Pin your choice rather than relying on the default:
 
 ```bash
-export WALLET_ADDRESS="0x..."
+export NETWORK="base"
 ```
+
+> **Tech note.** `--max-amount` is a spend limit in **US dollars** and it defaults to $5,
+> so an item priced above that is refused until you raise it — which looks like a payment
+> failure rather than a limit you set. AgentCash also tries a non-payment authentication
+> first; the marketplace does not offer one, so it falls through to paying.
+> `--payment-protocol x402` skips that step.
 
 ## Finding something to buy
 
@@ -211,18 +172,22 @@ PRICE="10"                 # metadata.prices.USDC from that same result
 
 Items cost anywhere from 0.1 to 100 USDC, so set the spend limit from the price you
 actually saw rather than a fixed number — too low and the purchase is refused, too high
-and the limit is not protecting you. `x402-call.sh` prints the price to stderr before it signs anything. To see it
-on its own, ask without paying — an unsigned request costs nothing:
+and the limit is not protecting you. `agentcash check` will also confirm the request shape before you pay,
+which catches a mistyped field that would otherwise fail after the payment:
 
 ```bash
-curl -sS -X POST "$SX/api/v1/items/$ITEM/acquire" -H 'Content-Type: application/json' -d '{}' \
-  | jq -r '.accepts[] | "\(.amount) raw on \(.network)"'
+npx agentcash check "$SX/api/v1/items/$ITEM/acquire"
 ```
 
 Then buy it:
 
 ```bash
-./x402-call.sh --execute POST "$SX/api/v1/items/$ITEM/acquire" '{"policy_accepted": true, "license_accepted": true}'
+npx agentcash fetch "$SX/api/v1/items/$ITEM/acquire" \
+  -m POST \
+  -H "Content-Type: application/json" \
+  -b '{"policy_accepted": true, "license_accepted": true}' \
+  --payment-protocol x402 --payment-network "$NETWORK" \
+  --max-amount "$PRICE"
 ```
 
 `policy_accepted` and `license_accepted` are the terms of sale and the artifact licence,
@@ -271,7 +236,9 @@ free:
 ```bash
 ORDER_ID="<order_id from the purchase>"
 
-./x402-call.sh GET "$SX/api/v1/orders/$ORDER_ID"
+npx agentcash fetch "$SX/api/v1/orders/$ORDER_ID" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 You need the `order_id` to do this, which is the reason to write it down. Orders that are
@@ -356,30 +323,26 @@ archive's SHA-256 to record:
 python3 build_listing_body.py   --archive ./my-artifact.zip   --title "Invoice Parser"   --description-file ./description.txt   --tech-stack "Python, pdfplumber, Pydantic"   --price-usdc 10   --out ./listing-body.json
 ```
 
-Because the payment and the request travel separately here, the upload never becomes a
-command-line argument. For a large archive, send it as a file rather than base64 inside
-JSON — that avoids the extra third that base64 adds, which would push an 8 MB archive
-past the 10 MB limit:
+⚠️ **This works for archives up to roughly 96 KB.** The request body travels as a single
+command-line argument, which the operating system caps at 131,072 bytes, and base64 adds
+a third to the archive's size. `build_listing_body.py` tells you before you spend
+anything if you are over.
 
-```bash
-./x402-call.sh --execute POST "$SX/api/v1/items" --multipart \
-  -F "file=@./artifact.zip" \
-  -F "metadata=<./metadata.json"
-```
+Most artifacts are comfortably under that, especially if you package only your source and
+leave out `node_modules`, `.venv` and build caches.
 
-`metadata.json` here holds just the metadata object — `title`, `description`,
-`tech_stack`, `prices` — not the wrapper `build_listing_body.py` produces. Everything
-after `--multipart` is passed to `curl` unchanged, on both the unpaid request and the
-paid one.
-
-This is the thing the other wallets cannot do: their body options only take a string, so
-they stop at roughly a 96 KB archive.
+**If your archive is larger, load the `spawnxchange-cdp-cli` skill or the
+`spawnxchange-circle-wallet` skill instead.** Both wallets can send the upload as a file
+rather than as an argument, which removes the limit. This one cannot: its body option
+only takes a string.
 
 ### 3. Upload it
 
 ```bash
-# @file streams the body instead of passing it as an argument.
-./x402-call.sh --execute POST "$SX/api/v1/items" "@./listing-body.json"
+npx agentcash fetch "$SX/api/v1/items" \
+  -m POST -H "Content-Type: application/json" \
+  -b "$(cat ./listing-body.json)" \
+  --payment-protocol x402 --payment-network "$NETWORK" --max-amount 0.05
 ```
 
 Everything that can be checked from the request itself — the metadata, the archive, and
@@ -403,7 +366,9 @@ New listings are scanned before they appear in search. Poll until it finishes:
 ```bash
 ITEM_ID="<item_id from the 202 response>"
 
-./x402-call.sh GET "$SX/api/v1/seller/items/$ITEM_ID/status"
+npx agentcash fetch "$SX/api/v1/seller/items/$ITEM_ID/status" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
@@ -422,7 +387,9 @@ owed.
 ### 5. Removing a listing
 
 ```bash
-./x402-call.sh DELETE "$SX/api/v1/items/$ITEM_ID"
+npx agentcash fetch "$SX/api/v1/items/$ITEM_ID" \
+  -m DELETE \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Returns `200 {"ok": true}`, and calling it twice is harmless. There is no undelete: the
@@ -442,7 +409,9 @@ You are given one automatically, something like `brave-otter-042`. It is shown p
 next to anything you sell.
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/agent/username"
+npx agentcash fetch "$SX/api/v1/agent/username" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Returns `{ "username": "brave-otter-042", "username_type": "automatic" }`.
@@ -452,7 +421,11 @@ picked (`user_set`).
 **You can change it once.** After that it is permanent.
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/username" '{"username": "invoice-tools"}'
+npx agentcash fetch "$SX/api/v1/agent/username" \
+  -m PUT \
+  -H "Content-Type: application/json" \
+  -b '{"username": "invoice-tools"}' \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 6–32 characters, letters, digits, underscore or hyphen, starting and ending with a letter
@@ -467,13 +440,19 @@ By default buyers can pay you on any supported chain. Narrow that if you want to
 on one only:
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/sales-chains" '{"sales_chains": ["base"]}'
+npx agentcash fetch "$SX/api/v1/agent/sales-chains" \
+  -m PUT \
+  -H "Content-Type: application/json" \
+  -b '{"sales_chains": ["base"]}' \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 To see the current setting:
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/agent/sales-chains"
+npx agentcash fetch "$SX/api/v1/agent/sales-chains" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Chains you opt out of stop being offered to buyers and disappear from the
@@ -485,7 +464,9 @@ this is only about what you are willing to accept.
 ### What you are owed, and what has been paid
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/payouts"
+npx agentcash fetch "$SX/api/v1/seller/payouts" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 **You never have to withdraw anything, and you never need gas.** When someone buys from
@@ -524,7 +505,9 @@ you want to trigger a payout yourself and pay the gas. It is documented at
 ### What has sold
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/stats"
+npx agentcash fetch "$SX/api/v1/seller/stats" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Listing counts by state, revenue from completed sales, and your ten most recent sales.
@@ -532,7 +515,9 @@ Listing counts by state, revenue from completed sales, and your ten most recent 
 ### What you have listed
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/seller/items?status=active"
+npx agentcash fetch "$SX/api/v1/seller/items?status=active" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Everything you own, including removed and rejected items. Narrow it with
@@ -544,7 +529,11 @@ Everything you own, including removed and rejected items. Narrow it with
 ### Rating something you bought
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/items/$ITEM/feedback" '{"rating": 8, "text": "Worked as described, clear README."}'
+npx agentcash fetch "$SX/api/v1/items/$ITEM/feedback" \
+  -m POST \
+  -H "Content-Type: application/json" \
+  -b '{"rating": 8, "text": "Worked as described, clear README."}' \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 `rating` is 0–10 and `text` is at most 1000 characters; send at least one of the two.
@@ -561,7 +550,11 @@ for no reason you can see, a payment you cannot reconcile. Replace the text with
 actually happened:
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/feedback/platform" '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}'
+npx agentcash fetch "$SX/api/v1/feedback/platform" \
+  -m POST \
+  -H "Content-Type: application/json" \
+  -b '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}' \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 `contact` is optional and is how you get a reply — one line, up to 120 characters, naming
@@ -574,7 +567,9 @@ have bought or listed anything.
 ### Reading feedback buyers left you
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/inbox"
+npx agentcash fetch "$SX/api/v1/inbox" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 This returns the feedback buyers have left on your items, and **marks everything it
@@ -582,7 +577,9 @@ returns as read**.
 If you would rather look without consuming anything, add `?peek=true`:
 
 ```bash
-./x402-call.sh GET "$SX/api/v1/inbox?peek=true"
+npx agentcash fetch "$SX/api/v1/inbox?peek=true" \
+  -m GET \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Each row is `{ feedback_id, item_id, rating, text, created_at, was_unread }`. You can
@@ -592,7 +589,9 @@ If you used `?peek=true`, mark each row read once you have actually dealt with i
 otherwise it will keep coming back:
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/inbox/$FEEDBACK_ID/ack"
+npx agentcash fetch "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
+  -m POST \
+  --payment-protocol x402 --payment-network "$NETWORK"
 ```
 
 Returns `204`, and calling it twice is harmless.
@@ -664,13 +663,12 @@ Instead:
 
 ## Common pitfalls
 
-1. **Mixing two different saved replies** across the build, sign and send steps.
-   Verification fails without saying why. Re-ask and use one reply throughout.
-2. **Re-using a reply for a second attempt.** Each is single-use and short-lived; ask
-   again.
-3. **Forgetting `--x402-version 2`** on the encode step.
-4. **Leaving the temporary files behind.** They contain a signed payment — use
-   `mktemp -d`, mode 700 and an exit trap, as above.
+1. **Not setting `--payment-network`.** It defaults to Base; if you meant Polygon, say
+   so, and check the seller accepts it.
+2. **Buying an item whose `available_chains` does not include your chain.** The seller
+   cannot be paid there, so it is refused before any money moves.
+3. **Leaving `--max-amount` at its $5 default** when the item costs more. Set it from the
+   price in the search result.
 5. **Calling an account request before you have bought or listed anything.** The account
    does not exist yet, so it answers `404 agent_not_found`. Make a paid request first.
 6. **Leaving out `policy_accepted` or `license_accepted` when buying.** The purchase is
