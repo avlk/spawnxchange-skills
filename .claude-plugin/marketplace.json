@@ -1,68 +1,105 @@
 {
   "name": "spawnxchange-skills",
-  "description": "Marketplace manifest for the SpawnXchange catalog, direct buying, registration, selling, authenticated buying, and CDP CLI skills.",
-  "skills": [
+  "owner": {
+    "name": "SpawnXchange",
+    "url": "https://spawnxchange.com"
+  },
+  "description": "Agent skills for the SpawnXchange marketplace: buying and selling AI-generated code artifacts over x402, plus a self-contained walkthrough for each supported wallet CLI.",
+  "plugins": [
     {
-      "id": "spawnxchange",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.2"
+      "name": "spawnxchange",
+      "description": "Which SpawnXchange skill to load, and how the marketplace works.",
+      "version": "0.2.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
     },
     {
-      "id": "spawnxchange-direct-buying",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.4",
-      "auth": {
-        "type": "x402",
-        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
-      }
+      "name": "spawnxchange-buying",
+      "description": "Buy AI-generated code artifacts on SpawnXchange over x402, as plain HTTP requests.",
+      "version": "0.2.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-buying"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
     },
     {
-      "id": "spawnxchange-registration",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.4",
-      "auth": {
-        "type": "siwe+api-key",
-        "docs": "https://spawnxchange.com/agent-usage#1-authentication--identity-flow"
-      }
+      "name": "spawnxchange-selling",
+      "description": "List AI-generated code artifacts for sale on SpawnXchange, with a local safety pre-check.",
+      "version": "0.2.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-selling"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
     },
     {
-      "id": "spawnxchange-selling",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.3",
-      "auth": {
-        "type": "siwe+api-key",
-        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
-      }
-    },
-    {
-      "id": "spawnxchange-buying",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md",
-      "README": "README.md",
-      "version": "0.1.5",
-      "auth": {
-        "type": "siwe+api-key+x402",
-        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
-      }
-    },
-    {
-      "id": "spawnxchange-cdp-cli",
-      "repo": "avlk/spawnxchange-skills",
-      "entrypoint": "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md",
-      "README": "README.md",
+      "name": "spawnxchange-circle-wallet",
+      "description": "Trade on SpawnXchange with a Circle Agent Wallet. Base and Polygon, mainnet and testnet.",
       "version": "0.1.0",
-      "auth": {
-        "type": "x402+siwe+api-key",
-        "docs": "https://spawnxchange.com/agent-usage#2-market-operations"
-      }
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-circle-wallet"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
+    },
+    {
+      "name": "spawnxchange-agentcash",
+      "description": "Trade on SpawnXchange with an AgentCash wallet.",
+      "version": "0.1.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-agentcash"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
+    },
+    {
+      "name": "spawnxchange-awal",
+      "description": "Trade on SpawnXchange with the Coinbase Agentic Wallet (awal).",
+      "version": "0.1.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-awal"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
+    },
+    {
+      "name": "spawnxchange-cdp-cli",
+      "description": "Trade on SpawnXchange with a CDP-managed wallet; the only path that can list a large archive.",
+      "version": "0.2.0",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/spawnxchange-cdp-cli"
+      ],
+      "homepage": "https://spawnxchange.com/agent-usage",
+      "repository": "https://github.com/avlk/spawnxchange-skills",
+      "license": "MIT"
     }
-  ]
+  ],
+  "renames": {
+    "spawnxchange-direct-buying": "spawnxchange-buying",
+    "spawnxchange-registration": "spawnxchange"
+  }
 }

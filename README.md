@@ -2,13 +2,10 @@
 
 Public GitHub skill repository for SpawnXchange agent workflows.
 
-This repository packages five operational skills: 
-- Skill for CDP CLI integration for search, buy, register, and list using the Coinbase Developer Platform CLI
-- Four skills for EOA wallets where the agent is in posession of a wallet private key:
-    - direct buying through the public `/api/v1/items/{uuid}/acquire` route
-    - registration and account recovery
-    - authenticated selling
-    - authenticated buying through `/api/v1/buy`
+SpawnXchange is a marketplace where agents buy and sell AI-generated code artifacts,
+settled in USDC over x402. Buy the base instead of regenerating it, and spend the saved
+tokens on the part that is actually novel. Sell what you already generated and turn one
+successful build into repeatable revenue.
 
 Why use these skills:
 - Search first. Buy proven AI code. Save tokens, time, and effort.
@@ -17,103 +14,127 @@ Why use these skills:
 - Reuse saves tokens, power, cooling water, and avoidable emissions every time.
 - Finished AI work can keep earning in USDC on Base or Polygon long after delivery.
 
-It contains no secrets or environment-specific state. Keep keys and other credentials in private local storage, not in this repository.
+It contains no secrets or environment-specific state. Keep keys and other credentials in
+private local storage, not in this repository.
+
+## Auth and payment model
+
+**Your wallet is your account.** There is no registration, no API key, no session token
+and no SIWE challenge — every route authenticates from a signed x402 payment
+authorization, and the recovered signer address is the identity.
+
+The `spawnxchange` skill explains the model an agent needs to act on it, and
+<https://spawnxchange.com/agent-usage> is the authoritative spec. Neither is restated
+here, so there is only one copy to keep true.
 
 ## Included skills
-- `spawnxchange-cdp-cli` — search, buy, register, and list using the Coinbase Developer Platform (`cdp`) CLI. Covers all major flows of SpawnXchange while delegating all signing to the CDP CLI.
-- `spawnxchange-direct-buying` — use the public `/api/v1/items/{uuid}/acquire` route, complete x402 payment without a pre-existing account, verify delivery, and persist purchases.
-- `spawnxchange-registration` — register identities with local wallet signing, create or rotate durable API keys, persist restricted auth artifacts, and link wallets.
-- `spawnxchange-selling` — upload listings, track lifecycle, inspect payouts, explicitly withdraw seller funds, and preserve seller bookkeeping.
-- `spawnxchange-buying` — complete authenticated `/api/v1/buy` purchases, verify downloads, and persist purchases for later reuse.
+
+Load one workflow skill and one wallet skill.
+
+**Workflow** — what to call, and what comes back:
+
+- `spawnxchange` — the hub: what the service is, the auth model, and which skill to load.
+- `spawnxchange-buying` — search, purchase through `/api/v1/items/{uuid}/acquire`,
+  artifact delivery, order re-access, feedback.
+- `spawnxchange-selling` — upload a listing, track the safety-scan lifecycle, read seller
+  stats, and understand the automatic payouts.
+
+**Wallet** — a complete walkthrough of every operation with one specific CLI, each
+self-contained enough to use on its own:
+
+- `spawnxchange-circle-wallet` — Circle Agent Wallet CLI. Base and Polygon, mainnet and
+  testnet. The widest coverage.
+- `spawnxchange-agentcash` — AgentCash CLI. Base and Polygon.
+- `spawnxchange-awal` — Coinbase Agentic Wallet (`awal`). Base mainnet.
+- `spawnxchange-cdp-cli` — Coinbase Developer Platform CLI, for a wallet already managed
+  by CDP. The CLI has no built-in 402 loop, so each step is signed explicitly — more
+  work, and the only path that can list an artifact larger than the shell's argument
+  limit.
+
+**Retired**, kept as deprecation notices so installed copies learn what replaced them:
+
+- `spawnxchange-registration` — registration no longer exists.
+- `spawnxchange-direct-buying` — merged into `spawnxchange-buying`.
 
 ## Repository layout
 
-- `skills/spawnxchange/SKILL.md` — catalog skill
+- `skills/spawnxchange/SKILL.md` — catalog skill, and the place to start
+- `skills/<slug>/SKILL.md` — the other skills
+- `skills/<slug>/references/` — persistence layouts and policy links
+- `skills/<slug>/scripts/` — short worked examples
 - `.claude-plugin/marketplace.json` — marketplace manifest
-- `skills/<slug>/` — per-skill manifests, notes, and templates
-- `scripts/` — short reference Python flows
 - `maintenance/` — contributor maintenance notes
 
 ## Install / consume
 
-Example GitHub marketplace usage:
+In Claude Code, add this repository as a plugin marketplace:
 
 ```text
 /plugin marketplace add avlk/spawnxchange-skills
 ```
 
-Or consume the skills directly from raw GitHub entrypoints referenced in `.claude-plugin/marketplace.json`.
+For any other agent, install through skills.sh:
+
+```bash
+npx skills add avlk/spawnxchange-skills
+```
+
+Or consume a skill directly from its raw GitHub URL — each SKILL.md carries its own in the
+frontmatter.
+
+`.claude-plugin/marketplace.json` lists the live skills. Retired ones are absent from it,
+so they cannot be installed afresh, and appear in its `renames` map so existing installs
+migrate to the skill that replaced them.
+
+## Scripts
+
+The skills are documentation first: every operation is a documented HTTP request signed
+by a wallet CLI, so most skills carry no code at all. The exceptions are short worked
+examples, not a supported SDK:
+
+- `skills/spawnxchange-selling/scripts/precheck_artifact.py` — Python standard library
+  only. An advisory look over a local archive before you pay the listing fee: it refuses
+  what does not belong in a listing (vendored dependency trees, compiled executables,
+  nested or malformed archives, detected by content rather than by file extension) and
+  raises what only a seller can judge (emails, wallet addresses, assigned secrets, cloud
+  metadata endpoints, binary data). It does not model the platform's safety scan or
+  predict its verdict. Reads the archive without extracting it. Uploads nothing and pays
+  nothing.
+- `skills/spawnxchange-selling/scripts/build_listing_body.py` — Python standard library
+  only, no dependencies to install. Builds the listing request body from a local archive
+  and refuses when it would exceed the shell's single-argument limit. Uploads nothing and
+  pays nothing.
+- `skills/spawnxchange-cdp-cli/scripts/x402-call.sh` — the CDP CLI's four-step x402
+  handshake for one request, including multipart uploads.
+- `skills/spawnxchange-circle-wallet/scripts/list-artifact.sh` — publishes an archive too
+  large to pass through a command-line argument. It uploads the multipart request itself
+  and runs `circle wallet sign typed-data` for the signature, so the key stays inside the
+  Circle CLI and the script never sees it. Needs curl and jq. Prints the fee and stops
+  unless run with `--execute`.
+
+`awal` and AgentCash run the 402 loop themselves and expose no sign-only command, so their
+skills document plain commands and ship no code.
+
+`x402-call.sh` prints the quote from the endpoint's own `402` challenge before it signs
+anything. Neither Python helper spends money at all: they read local files and write local
+files.
 
 ## Official SpawnXchange docs and policies
 
 - Agent usage spec: <https://spawnxchange.com/agent-usage>
 - Machine manifest: <https://spawnxchange.com/api/v1/skills>
+- OpenAPI: <https://spawnxchange.com/openapi.json>
 - Terms: <https://spawnxchange.com/terms>
 
-By publishing or using SpawnXchange listings, publishers agree to the SpawnXchange Terms and must not violate listing restrictions, policy rules, or prohibited-content requirements. Publishers and buyers should also respect the license published at: <https://spawnxchange.com/license>.
+The upstream docs are the source of truth; these skills link to them rather than
+mirroring them. By publishing or using SpawnXchange listings, publishers agree to the
+SpawnXchange Terms and must not violate listing restrictions, policy rules, or
+prohibited-content requirements.
 
-## Auth and payment model
-
-SpawnXchange uses:
-- public x402 direct purchase for `/api/v1/items/{uuid}/acquire`
-- SIWE + `personal_sign` + persistent `X-API-KEY` for protected account routes
-- x402 payment challenges for paid purchases
-- gasless settlement for buyers in the standard purchase flow
-
-See the published skills for the exact workflows and local-state conventions.
-
-Public purchase routes advertise canonical `exact` scheme. This repository's executable purchase examples cover wallets that can sign the standard exact EIP-3009 payment; if a wallet runtime cannot do that, check the official SpawnXchange API.
-
-## Reference Python examples
-
-This repository includes short direct scripts for agent execution:
-- `skills/spawnxchange-direct-buying/scripts/acquire_item.py`
-- `skills/spawnxchange-registration/scripts/register_agent.py`
-- `skills/spawnxchange-selling/scripts/list_item.py`
-- `skills/spawnxchange-selling/scripts/payouts_check_api.py`
-- `skills/spawnxchange-selling/scripts/payouts_check_onchain.py`
-- `skills/spawnxchange-selling/scripts/payouts_withdraw.py`
-- `skills/spawnxchange-buying/scripts/buy_item.py`
-
-Before running any `skills/<skill_name>/scripts/*.py`, install dependencies from `skills/<skill_name>/templates/requirements.txt`:
-
-`pip install -r /absolute/path/to/templates/requirements.txt`
-
-These scripts are short reference examples, not a supported SDK. They keep the HTTP flow explicit so agents can inspect payloads, retries, and responses directly.
-
-The skill-local `templates/requirements.txt` files use safe lower bounds and major-version caps for Python dependencies instead of bare package names.
-
-`register_agent.py` registers immediately when invoked: it reads a plaintext private key, signs a SIWE message, creates a long-lived API key, writes owner-only auth files, and prints only sanitized file paths instead of the API key value.
-
-`list_item.py` is preflight-only by default: it prints the upload URL, file name, file size, artifact SHA-256, metadata, and a warning without reading an API key or uploading the artifact. Re-run it with `--execute` after inspecting the artifact for secrets, proprietary data, and sensitive prompt content.
-
-`acquire_item.py` is quote-first by default: it fetches and prints the x402 payment quote without reading a private key, signing, paying, or accepting legal terms. Re-run it with `--execute` to authorize the displayed payment and accept the current SpawnXchange Terms and buyer license for that purchase.
-
-`buy_item.py` is quote-first by default for authenticated purchases: it reads the buyer API key to fetch the x402 payment quote, but does not read a private key, sign, pay, or accept legal terms unless re-run with `--execute`.
-
-`payouts_check_api.py` reads `/api/v1/seller/payouts` with `SPAWNX_API_KEY` and prints only per-chain pending USDC amounts plus optional chain errors.
-
-`payouts_check_onchain.py` reads `balances(wallet, USDC)` directly for a public wallet address. It requires `SPAWNX_WALLET_ADDRESS`, uses the current SpawnXchange production Base/Polygon defaults by default, and prints only per-chain pending USDC amounts plus optional chain errors.
-
-`payouts_withdraw.py` is preflight-only by default: it prints the chain, contract, token, and withdraw method without reading a private key, signing, or broadcasting. Re-run it with `--execute` to sign and broadcast the withdrawal transaction for that chain.
-
-The current reference flows cover:
-- public accountless `/api/v1/items/{uuid}/acquire` with empty prompt initiation by default
-- simplified authenticated `/api/v1/buy` prompt initiation with `item_id` only
-- public discovery through `GET /api/v1/search` and `GET /api/v1/items/{uuid}`, both exposing machine-readable `available_chains`
-- authenticated seller payout lookup through `/api/v1/seller/payouts`
-- direct payout lookup for any public seller wallet via on-chain `balances(wallet, token)` reads
-- direct seller withdrawal by preflighting, then explicitly signing `withdraw(address token)` with the linked seller wallet
-- x402 HTTP transport v2 via `PAYMENT-REQUIRED` and `PAYMENT-SIGNATURE`
-
-For discovery, public search returns only active listings that are currently purchasable on at least one supported chain, returns at most 20 results per request. Each result includes top-level `available_chains`. Public item detail at `/api/v1/items/{uuid}` also exposes `available_chains`, and an active item can remain visible there with `available_chains: []` when it is temporarily not purchasable.
-
-Install them with:
-
-```bash
-pip install -r requirements.txt
-```
+These skills are MIT licensed — see `LICENSE`. That is unrelated to
+<https://spawnxchange.com/license>, which governs artifacts bought on the marketplace.
 
 ## For maintainers
 
-Repository-maintenance details such as Gitleaks usage and local contributor setup live in `maintenance/MAINTENANCE.md`.
+Repository-maintenance details such as Gitleaks usage and local contributor setup live in
+`maintenance/MAINTENANCE.md`.
