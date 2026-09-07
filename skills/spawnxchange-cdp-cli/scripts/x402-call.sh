@@ -22,6 +22,11 @@
 # cost is always seen before it is paid. Prints the final response body on stdout
 # and the price on stderr.
 #
+# The URL must be https on a spawnxchange.com host. This script hands a remote
+# reply straight to a signing key, so the set of hosts allowed to produce that
+# reply is part of what keeps it safe; point it at another deployment by editing
+# the pattern below, deliberately, not by passing a different argument.
+#
 # Requires: cdp CLI (`cdp env live`), curl, jq.
 
 x402_call() {
@@ -41,6 +46,14 @@ x402_call() {
     local url="${2:?url required}"
     local wallet="${WALLET_ADDRESS:?WALLET_ADDRESS must be set to your CDP wallet address}"
     shift 2
+
+    # Whatever answers this URL decides what gets signed. Keep it to the
+    # marketplace, over TLS.
+    if ! [[ "$url" =~ ^https://([a-z0-9-]+\.)*spawnxchange\.com(/|$) ]]; then
+      echo "refusing: the URL must be https:// on a spawnxchange.com host" >&2
+      echo "got: $url" >&2
+      return 2
+    fi
 
     local work
     work=$(mktemp -d)
@@ -64,7 +77,7 @@ x402_call() {
     fi
 
     # 1. Unsigned probe. The reply is the 402 carrying the requirements to sign.
-    curl -sS -X "$method" "${body_args[@]}" "$url" > "$work/challenge.json"
+    curl -sS --proto '=https' --max-redirs 0 -X "$method" "${body_args[@]}" "$url" > "$work/challenge.json"
 
     if ! jq -e '.accepts' "$work/challenge.json" >/dev/null 2>&1; then
       # Not a challenge: either the route is public, or it refused us outright
@@ -129,7 +142,7 @@ x402_call() {
       --signature "$(cat "$work/signature.txt")" \
       --authorization "$(jq -c '.message' "$work/typed_data.json")" > "$work/header.txt"
 
-    curl -sS -X "$method" \
+    curl -sS --proto '=https' --max-redirs 0 -X "$method" \
       -H "PAYMENT-SIGNATURE: $(cat "$work/header.txt")" \
       "${body_args[@]}" "$url"
   )

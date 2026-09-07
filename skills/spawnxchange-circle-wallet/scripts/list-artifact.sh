@@ -5,6 +5,13 @@
 #   ./list-artifact.sh --archive FILE --title T --description-file F \
 #       --tech-stack S --price-usdc N --wallet 0x... --chain BASE [--execute]
 #
+#     --max-fee-usdc N  refuse to sign a listing fee above N (default 0.05; the
+#                       published fee is a flat 0.01)
+#     --base-url URL    a SpawnXchange deployment other than the production one.
+#                       https only, and only a spawnxchange.com host: this URL
+#                       receives the archive and dictates the terms that get
+#                       signed, so it is not free-form.
+#
 # Why this exists: `circle services pay` sends the request for you, which is what
 # you want everywhere else — but it takes the request body as a single
 # command-line argument, and the operating system caps one argument at 131,072
@@ -23,7 +30,8 @@
 # Preflight by default: it uploads the unpaid request, prints the fee the
 # marketplace asks for, and stops. Pass --execute to pay it and publish.
 #
-# Requires: circle CLI (logged in), curl, jq.
+# Requires: the Circle CLI, logged in, installed at the pinned version the skill
+# names (`npm install -g @circle-fin/cli@1.0.0`); curl; jq.
 
 list_artifact() {
   (
@@ -31,6 +39,7 @@ list_artifact() {
 
     local archive="" title="" description="" description_file="" tech_stack=""
     local price="" wallet="" chain="" base_url="https://spawnxchange.com" execute=0
+    local max_fee="0.05"
 
     while [ $# -gt 0 ]; do
       case "$1" in
@@ -43,20 +52,33 @@ list_artifact() {
         --wallet)           wallet="$2"; shift 2 ;;
         --chain)            chain="$2"; shift 2 ;;
         --base-url)         base_url="$2"; shift 2 ;;
+        --max-fee-usdc)     max_fee="$2"; shift 2 ;;
         --execute)          execute=1; shift ;;
         *) echo "unknown argument: $1" >&2; return 2 ;;
       esac
     done
 
+    # This URL receives the archive and supplies the payment terms this script
+    # signs, so it decides both what leaks and what gets authorized. Restrict it
+    # to the marketplace: https, and a spawnxchange.com host. Point it elsewhere
+    # by editing this pattern, deliberately, not by passing a flag.
+    base_url="${base_url%/}"
+    if ! [[ "$base_url" =~ ^https://([a-z0-9-]+\.)*spawnxchange\.com$ ]]; then
+      echo "--base-url must be https:// on a spawnxchange.com host; got: $base_url" >&2
+      return 2
+    fi
+
     # Circle's chain names are not the marketplace's, and the payment request uses
     # CAIP-2 ids. Map them here so a payment cannot be signed for a chain you did
-    # not name.
-    local network
+    # not name. The USDC address goes with it: the EIP-712 domain below is built
+    # from the reply, and a signature is only ever as narrow as the contract it
+    # names, so the contract is pinned per chain rather than taken on trust.
+    local network usdc
     case "$chain" in
-      BASE)          network="eip155:8453" ;;
-      MATIC)         network="eip155:137" ;;
-      BASE-SEPOLIA)  network="eip155:84532" ;;
-      MATIC-AMOY)    network="eip155:80002" ;;
+      BASE)          network="eip155:8453"  usdc="0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" ;;
+      MATIC)         network="eip155:137"   usdc="0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" ;;
+      BASE-SEPOLIA)  network="eip155:84532" usdc="0x036cbd53842c5426634e7929541ec2318f3dcf7e" ;;
+      MATIC-AMOY)    network="eip155:80002" usdc="0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582" ;;
       *) echo "--chain must be BASE, MATIC, BASE-SEPOLIA or MATIC-AMOY" >&2; return 2 ;;
     esac
 
@@ -100,7 +122,7 @@ list_artifact() {
     # The unpaid upload. Validation runs here, so a malformed listing is refused
     # now, for free. curl streams the file, so nothing passes through argv.
     local code
-    code=$(curl -sS -o "$work/challenge.json" -w '%{http_code}' -X POST \
+    code=$(curl -sS --proto '=https' --max-redirs 0 -o "$work/challenge.json" -w '%{http_code}' -X POST \
              -F "file=@${archive}" -F "metadata=<${work}/metadata.json" \
              "${base_url}/api/v1/items")
     if [ "$code" != "402" ]; then
@@ -118,7 +140,35 @@ list_artifact() {
       return 1
     fi
 
-    echo "fee       $(jq -r '.amount // .maxAmountRequired' <<<"$requirement") raw units of $(jq -r '.asset' <<<"$requirement")" >&2
+    # Everything from here on is built out of a remote reply. Check it against
+    # what was asked for first: a signature is worth exactly the terms inside it,
+    # and printing them for the operator is not the same as bounding them.
+    local asset amount
+    asset=$(jq -r '.asset // ""' <<<"$requirement" | tr 'A-Z' 'a-z')
+    if [ "$asset" != "$usdc" ]; then
+      echo "refusing to sign: $chain settles USDC at" >&2
+      echo "  $usdc" >&2
+      echo "but the reply asks to authorize" >&2
+      echo "  $asset" >&2
+      return 1
+    fi
+
+    # The listing fee is a flat 0.01 USDC. A reply asking for materially more is
+    # one to walk away from, not one to print and hope somebody reads.
+    amount=$(jq -r '.amount // .maxAmountRequired // ""' <<<"$requirement")
+    case "$amount" in
+      ''|*[!0-9]*)
+        echo "refusing to sign: the fee is not a whole number of raw units: $amount" >&2
+        return 1 ;;
+    esac
+    if ! awk -v a="$amount" -v m="$max_fee" 'BEGIN { exit !(a <= m * 1000000) }'; then
+      echo "refusing to sign: the marketplace asks $amount raw units" >&2
+      echo "($(awk -v a="$amount" 'BEGIN { printf "%.6f", a / 1000000 }') USDC), over the" >&2
+      echo "--max-fee-usdc cap of $max_fee. Raise the cap only if you know why it moved." >&2
+      return 1
+    fi
+
+    echo "fee       $amount raw units of $(jq -r '.asset' <<<"$requirement")" >&2
     echo "          on $(jq -r '.network' <<<"$requirement") to $(jq -r '.payTo' <<<"$requirement")" >&2
 
     if [ "$execute" -ne 1 ]; then
@@ -129,9 +179,22 @@ list_artifact() {
     fi
 
     # EIP-3009, exactly as the settlement path verifies it. The nonce is single-use.
-    local nonce deadline
+    local nonce deadline timeout
     nonce="0x$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-    deadline=$(( $(date +%s) + $(jq -r '.maxTimeoutSeconds // 120' <<<"$requirement") ))
+
+    # maxTimeoutSeconds is remote input, and it used to go straight into the
+    # arithmetic expansion below. Bash evaluates command substitution inside an
+    # array subscript there, so a reply of "x[$(...)]" ran that command on this
+    # machine — in the shell that is about to sign a payment. Take it only as a
+    # whole number in a sane range, and fall back to the documented default.
+    timeout=$(jq -r 'if (.maxTimeoutSeconds | type) == "number"
+                     then .maxTimeoutSeconds | floor | tostring
+                     else "" end' <<<"$requirement")
+    case "$timeout" in
+      ''|*[!0-9]*) timeout=120 ;;
+    esac
+    [ "$timeout" -ge 1 ] && [ "$timeout" -le 600 ] || timeout=120
+    deadline=$(( $(date +%s) + timeout ))
 
     jq -n --argjson r "$requirement" --arg from "$wallet" \
           --arg nonce "$nonce" --arg before "$deadline" '
@@ -154,10 +217,20 @@ list_artifact() {
         }
       }' > "$work/typed.json"
 
+    # An installed `circle` is what the skill tells you to set up, and it is the
+    # one that was reviewed. Falling back to `npx` pins the version rather than
+    # taking whatever the registry happens to serve at signing time.
+    local -a circle_cli
+    if command -v circle >/dev/null 2>&1; then
+      circle_cli=(circle)
+    else
+      circle_cli=(npx --yes "@circle-fin/cli@1.0.0")
+    fi
+
     echo >&2
-    echo "signing with the Circle CLI..." >&2
+    echo "signing with the Circle CLI (${circle_cli[*]})..." >&2
     local signature
-    signature=$(npx --yes @circle-fin/cli wallet sign typed-data \
+    signature=$("${circle_cli[@]}" wallet sign typed-data \
                   "$(jq -c . "$work/typed.json")" \
                   --address "$wallet" --chain "$chain" -q | tail -1 | tr -d ' \r')
     case "$signature" in
@@ -175,7 +248,7 @@ list_artifact() {
              | base64 -w 0)
 
     echo "paying and uploading..." >&2
-    code=$(curl -sS -o "$work/result.json" -w '%{http_code}' -X POST \
+    code=$(curl -sS --proto '=https' --max-redirs 0 -o "$work/result.json" -w '%{http_code}' -X POST \
              -H "PAYMENT-SIGNATURE: $header" \
              -F "file=@${archive}" -F "metadata=<${work}/metadata.json" \
              "${base_url}/api/v1/items")

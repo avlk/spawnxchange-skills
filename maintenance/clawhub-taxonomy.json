@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "ClawHub takes categories and topics as publish-time flags, not frontmatter. A skill",
+    "published without --categories is classified by the registry, which is how these",
+    "landed in 'other', 'development' and 'integrations' with no pattern to it. Omitting",
+    "the flag on a later publish keeps whatever the registry already decided, so every",
+    "skill is listed here explicitly, including the ones that happen to be right.",
+    "Categories: at most 3, from integrations, automation, research, development,",
+    "productivity, communication, creative, knowledge, agents, operations, security,",
+    "finance, lifestyle, other. An unknown slug fails the publish. Topics: at most 5 free",
+    "labels, 48 characters each; official, verified and certified are reserved."
+  ],
+  "spawnxchange": {
+    "categories": ["agents", "finance", "development"],
+    "topics": ["x402", "usdc", "marketplace", "code-artifacts", "agent-commerce"]
+  },
+  "spawnxchange-buying": {
+    "categories": ["development", "agents", "finance"],
+    "topics": ["x402", "usdc", "marketplace", "code-artifacts", "code-reuse"]
+  },
+  "spawnxchange-selling": {
+    "categories": ["development", "agents", "finance"],
+    "topics": ["x402", "usdc", "marketplace", "code-artifacts", "publishing"]
+  },
+  "spawnxchange-circle-wallet": {
+    "categories": ["finance", "agents", "integrations"],
+    "topics": ["x402", "usdc", "circle", "agent-wallet", "marketplace"]
+  },
+  "spawnxchange-agentcash": {
+    "categories": ["finance", "agents", "integrations"],
+    "topics": ["x402", "usdc", "agentcash", "agent-wallet", "marketplace"]
+  },
+  "spawnxchange-awal": {
+    "categories": ["finance", "agents", "integrations"],
+    "topics": ["x402", "usdc", "awal", "coinbase", "marketplace"]
+  },
+  "spawnxchange-cdp-cli": {
+    "categories": ["finance", "agents", "integrations"],
+    "topics": ["x402", "usdc", "cdp", "coinbase", "marketplace"]
+  },
+  "spawnxchange-registration": {
+    "categories": ["other"],
+    "topics": ["deprecated", "spawnxchange"]
+  },
+  "spawnxchange-direct-buying": {
+    "categories": ["other"],
+    "topics": ["deprecated", "spawnxchange"]
+  }
+}
