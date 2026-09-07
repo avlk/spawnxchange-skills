@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.2.0
+version: 0.3.0
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -23,6 +23,8 @@ metadata:
       raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-cdp-cli/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
+    requires:
+      bins: [cdp, curl, jq]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}
@@ -150,11 +152,13 @@ the earlier signature no longer matches, and each is single-use and short-lived.
 
 The rest of this skill uses the wrapper.
 
-Two things it does that the four steps above do not. It refuses any request that would
+Three things it does that the four steps above do not. It refuses any request that would
 spend money unless you pass `--execute` first, printing the price instead — so a cost is
-always seen before it is paid; free identity requests run without it. And `--network`
-narrows a multi-chain reply to the one you name, so a payment cannot be signed for a chain
-you did not choose. Without it, a paid request offering several chains stops and asks.
+always seen before it is paid; free identity requests run without it. `--network` narrows
+a multi-chain reply to the one you name, so a payment cannot be signed for a chain you did
+not choose; without it, a paid request offering several chains stops and asks. And it
+refuses any URL that is not `https` on a `spawnxchange.com` host — whatever answers decides
+what gets signed, so the set of hosts allowed to answer is part of the wrapper's job.
 
 ```bash
 export WALLET_ADDRESS="0x..."

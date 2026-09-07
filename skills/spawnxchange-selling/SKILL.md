@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.2.0
+version: 0.2.1
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -23,6 +23,8 @@ metadata:
       raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
+    requires:
+      bins: [python3]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}

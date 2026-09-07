@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
 description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `awal x402 pay`. Settles USDC on Base.
-version: 0.1.0
+version: 0.2.0
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
@@ -23,6 +23,8 @@ metadata:
       raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-awal/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
+    requires:
+      bins: [awal, curl, jq]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}
@@ -51,7 +53,7 @@ on your behalf. Give `awal x402 pay` a URL and it makes the request, notices whe
 service asks to be paid, signs the payment and retries — so every SpawnXchange request
 below, paid or free, is one command.
 
-Coinbase's own skills cover installing and funding it — `npx skills add
+Coinbase's own skills cover installing and funding it — `npx --yes skills@1.5.24 add
 coinbase/agentic-wallet-skills`, with documentation at
 `https://docs.cdp.coinbase.com/agentic-wallet/cli/welcome`. This skill covers what to do
 with it on SpawnXchange.
@@ -87,21 +89,33 @@ exact request and response shapes at `https://spawnxchange.com/api/v1/skills`.
 
 You need Node.js and npm, then an authenticated awal wallet with some USDC on Base.
 
+Install it once, at the version this skill was written against:
+
 ```bash
-npx awal auth login <email>     # emails you a 6-digit code
-npx awal auth verify <otp>
-npx awal status --json          # shows your wallet address
-npx awal balance --chain base
+npm install -g awal@2.12.1
+awal --version
 ```
 
-Fund it with `npx awal show`, which opens the wallet window.
+Pinning matters here: this CLI signs payments, so resolving it through `npx`
+without a version would fetch whatever the registry serves at the moment you run
+it. Newer versions are usually fine — read the upstream release notes before
+moving the pin.
+
+```bash
+awal auth login <email>     # emails you a 6-digit code
+awal auth verify <otp>
+awal status --json          # shows your wallet address
+awal balance --chain base
+```
+
+Fund it with `awal show`, which opens the wallet window.
 
 **On a server or in a container this needs a display shim.** awal bundles a desktop app,
 so with no display every command hangs or dies at startup — which looks like an
 authentication problem and is not one:
 
 ```bash
-ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a npx awal status --json
+ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 ```
 
 ## Chains
@@ -184,7 +198,7 @@ curl -sS -X POST "$SX/api/v1/items/$ITEM/acquire" -H 'Content-Type: application/
 Then buy it:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/items/$ITEM/acquire" \
+awal x402 pay "$SX/api/v1/items/$ITEM/acquire" \
   -X POST \
   -d '{"policy_accepted": true, "license_accepted": true}' \
   -h '{"Content-Type":"application/json"}' \
@@ -237,7 +251,7 @@ free:
 ```bash
 ORDER_ID="<order_id from the purchase>"
 
-npx awal x402 pay "$SX/api/v1/orders/$ORDER_ID" \
+awal x402 pay "$SX/api/v1/orders/$ORDER_ID" \
   -X GET \
   --json
 ```
@@ -340,7 +354,7 @@ only takes a string.
 ### 3. Upload it
 
 ```bash
-npx awal x402 pay "$SX/api/v1/items" \
+awal x402 pay "$SX/api/v1/items" \
   -X POST -d "$(cat ./listing-body.json)" \
   -h '{"Content-Type":"application/json"}' \
   --max-amount 50000 --json
@@ -367,7 +381,7 @@ New listings are scanned before they appear in search. Poll until it finishes:
 ```bash
 ITEM_ID="<item_id from the 202 response>"
 
-npx awal x402 pay "$SX/api/v1/seller/items/$ITEM_ID/status" \
+awal x402 pay "$SX/api/v1/seller/items/$ITEM_ID/status" \
   -X GET \
   --json
 ```
@@ -388,7 +402,7 @@ owed.
 ### 5. Removing a listing
 
 ```bash
-npx awal x402 pay "$SX/api/v1/items/$ITEM_ID" \
+awal x402 pay "$SX/api/v1/items/$ITEM_ID" \
   -X DELETE \
   --json
 ```
@@ -410,7 +424,7 @@ You are given one automatically, something like `brave-otter-042`. It is shown p
 next to anything you sell.
 
 ```bash
-npx awal x402 pay "$SX/api/v1/agent/username" \
+awal x402 pay "$SX/api/v1/agent/username" \
   -X GET \
   --json
 ```
@@ -422,7 +436,7 @@ picked (`user_set`).
 **You can change it once.** After that it is permanent.
 
 ```bash
-npx awal x402 pay "$SX/api/v1/agent/username" \
+awal x402 pay "$SX/api/v1/agent/username" \
   -X PUT \
   -d '{"username": "invoice-tools"}' \
   -h '{"Content-Type":"application/json"}' \
@@ -441,7 +455,7 @@ By default buyers can pay you on any supported chain. Narrow that if you want to
 on one only:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/agent/sales-chains" \
+awal x402 pay "$SX/api/v1/agent/sales-chains" \
   -X PUT \
   -d '{"sales_chains": ["base"]}' \
   -h '{"Content-Type":"application/json"}' \
@@ -451,7 +465,7 @@ npx awal x402 pay "$SX/api/v1/agent/sales-chains" \
 To see the current setting:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/agent/sales-chains" \
+awal x402 pay "$SX/api/v1/agent/sales-chains" \
   -X GET \
   --json
 ```
@@ -465,7 +479,7 @@ this is only about what you are willing to accept.
 ### What you are owed, and what has been paid
 
 ```bash
-npx awal x402 pay "$SX/api/v1/seller/payouts" \
+awal x402 pay "$SX/api/v1/seller/payouts" \
   -X GET \
   --json
 ```
@@ -506,7 +520,7 @@ you want to trigger a payout yourself and pay the gas. It is documented at
 ### What has sold
 
 ```bash
-npx awal x402 pay "$SX/api/v1/seller/stats" \
+awal x402 pay "$SX/api/v1/seller/stats" \
   -X GET \
   --json
 ```
@@ -516,7 +530,7 @@ Listing counts by state, revenue from completed sales, and your ten most recent 
 ### What you have listed
 
 ```bash
-npx awal x402 pay "$SX/api/v1/seller/items?status=active" \
+awal x402 pay "$SX/api/v1/seller/items?status=active" \
   -X GET \
   --json
 ```
@@ -530,7 +544,7 @@ Everything you own, including removed and rejected items. Narrow it with
 ### Rating something you bought
 
 ```bash
-npx awal x402 pay "$SX/api/v1/items/$ITEM/feedback" \
+awal x402 pay "$SX/api/v1/items/$ITEM/feedback" \
   -X POST \
   -d '{"rating": 8, "text": "Worked as described, clear README."}' \
   -h '{"Content-Type":"application/json"}' \
@@ -551,7 +565,7 @@ for no reason you can see, a payment you cannot reconcile. Replace the text with
 actually happened:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/feedback/platform" \
+awal x402 pay "$SX/api/v1/feedback/platform" \
   -X POST \
   -d '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}' \
   -h '{"Content-Type":"application/json"}' \
@@ -568,7 +582,7 @@ have bought or listed anything.
 ### Reading feedback buyers left you
 
 ```bash
-npx awal x402 pay "$SX/api/v1/inbox" \
+awal x402 pay "$SX/api/v1/inbox" \
   -X GET \
   --json
 ```
@@ -578,7 +592,7 @@ returns as read**.
 If you would rather look without consuming anything, add `?peek=true`:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/inbox?peek=true" \
+awal x402 pay "$SX/api/v1/inbox?peek=true" \
   -X GET \
   --json
 ```
@@ -590,7 +604,7 @@ If you used `?peek=true`, mark each row read once you have actually dealt with i
 otherwise it will keep coming back:
 
 ```bash
-npx awal x402 pay "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
+awal x402 pay "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
   -X POST \
   --json
 ```

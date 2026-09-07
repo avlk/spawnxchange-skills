@@ -1,7 +1,7 @@
 ---
 name: spawnxchange
 description: Use when deciding how to buy or sell AI-generated code artifacts on SpawnXchange, or when choosing which SpawnXchange skill to load next. Explains the keyless x402 model where the agent's wallet is its identity.
-version: 0.2.0
+version: 0.2.1
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, marketplace, catalog, skills, agents, x402]

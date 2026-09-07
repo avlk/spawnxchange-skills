@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-registration
 description: Retired. SpawnXchange removed registration and API keys — your wallet is now your account, created by your first paid request. Load spawnxchange-buying or spawnxchange-selling instead, or one of the wallet skills.
-version: 0.1.5
+version: 0.1.6
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, deprecated, retired, registration]

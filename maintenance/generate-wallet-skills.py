@@ -34,8 +34,40 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 RAW = "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills"
 
+# Reviewed npm versions, checked 2026-09-07.
+#
+# Every wallet CLI is installed once, at an exact version, and then invoked by
+# name. The alternative — `npx <pkg>` in each of the forty-odd examples — resolves
+# against the registry at run time, so the code that signs a payment can change
+# after the skill was reviewed, without the version changing. Every skill scanner
+# raises that first, and they are right to: these commands hold USDC.
+#
+# To bump: check the upstream release notes, change the pin here, regenerate, and
+# bump the skill versions. Do not drop the pin to silence a stale-version report.
+PINS = {
+    "circle": "@circle-fin/cli@1.0.0",
+    "awal": "awal@2.12.1",
+    "agentcash": "agentcash@0.17.1",
+    "skills": "skills@1.5.24",
+}
 
-def frontmatter(slug, description, version, tags, persistence_note):
+
+def install_note(binary, package):
+    """The one-time pinned install that every wallet's setup section opens with."""
+    return f"""Install it once, at the version this skill was written against:
+
+```bash
+npm install -g {package}
+{binary} --version
+```
+
+Pinning matters here: this CLI signs payments, so resolving it through `npx`
+without a version would fetch whatever the registry serves at the moment you run
+it. Newer versions are usually fine — read the upstream release notes before
+moving the pin."""
+
+
+def frontmatter(slug, description, version, tags, bins, persistence_note):
     return f"""---
 name: {slug}
 description: {description}
@@ -61,6 +93,8 @@ metadata:
       raw_url: {RAW}/{slug}/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
+    requires:
+      bins: [{bins}]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {{}}
@@ -570,7 +604,7 @@ LEGAL = '{"policy_accepted": true, "license_accepted": true}'
 # ── Per-wallet command shapes ────────────────────────────────────────────────
 
 def circle(method, url, body=None, cap=None):
-    lines = [f'npx circle services pay "{url}" \\',
+    lines = [f'circle services pay "{url}" \\',
              '  --address "$WALLET" --chain "$CHAIN" \\']
     if body:
         lines.append(f'  -X {method} -H "Content-Type: application/json" \\')
@@ -584,7 +618,7 @@ def circle(method, url, body=None, cap=None):
 
 
 def awal(method, url, body=None, cap=None):
-    lines = [f'npx awal x402 pay "{url}" \\', f'  -X {method} \\']
+    lines = [f'awal x402 pay "{url}" \\', f'  -X {method} \\']
     if body:
         lines.append(f"  -d '{body}' \\")
         lines.append('  -h \'{"Content-Type":"application/json"}\' \\')
@@ -593,7 +627,7 @@ def awal(method, url, body=None, cap=None):
 
 
 def agentcash(method, url, body=None, cap=None):
-    lines = [f'npx agentcash fetch "{url}" \\', f'  -m {method} \\']
+    lines = [f'agentcash fetch "{url}" \\', f'  -m {method} \\']
     if body:
         lines.append('  -H "Content-Type: application/json" \\')
         lines.append(f"  -b '{body}' \\")
@@ -663,17 +697,26 @@ archive, metadata that is too long — before sending a byte, and it will not gu
 `--chain` is Circle's name for the network and the script maps it to the one requirement it
 signs, so a payment cannot be signed for a chain you did not name.
 
+The reply is checked before any of it reaches your key. The token it asks you to authorize
+must be USDC on the chain you named, the endpoint must be `https` on a `spawnxchange.com`
+host, and the fee must come in under `--max-fee-usdc`, which defaults to 0.05 against a
+published flat fee of 0.01. A reply that fails any of those is refused rather than shown to
+you and signed anyway.
+
 """,
         "call": circle,
         "wallet_name": "The Circle CLI",
-        "version": "0.1.0",
+        "bins": ["circle", "curl", "jq"],
+        "version": "0.2.0",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
             "Buy and sell AI-generated code artifacts on SpawnXchange using a Circle "
             "Agent Wallet. Complete walkthrough — searching, buying, taking delivery, "
-            "listing, payouts, account settings and feedback — with every request made "
-            "by `circle services pay`. Covers Base and Polygon, mainnet and testnet."
+            "listing, payouts, account settings and feedback. Every request is one "
+            "`circle services pay` command, except an upload too large to pass as an "
+            "argument, which a bundled script signs with `circle wallet sign typed-data` "
+            "instead. Covers Base and Polygon, mainnet and testnet."
         ),
         "tags": "spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc",
         "intro": r"""A command-line wallet from Circle that holds USDC and can pay for services on your
@@ -689,25 +732,27 @@ do with it on SpawnXchange.""",
             "for without paying, and `--estimate` on `pay` previews a call without "
             "settling it:"
         ),
-        "quote_cmd": 'npx circle services inspect "$SX/api/v1/items/$ITEM/acquire" --output json',
-        "prereq": r"""## Setting up
+        "quote_cmd": 'circle services inspect "$SX/api/v1/items/$ITEM/acquire" --output json',
+        "prereq": """## Setting up
 
 You need Node.js and npm, then a logged-in Circle wallet with some USDC in it.
 
+""" + install_note("circle", PINS["circle"]) + r"""
+
 ```bash
-npx circle wallet login <email>             # mainnet
-npx circle wallet login <email> --testnet   # testnet
-npx circle wallet status
+circle wallet login <email>             # mainnet
+circle wallet login <email> --testnet   # testnet
+circle wallet status
 ```
 
 Logging in for the first time creates a wallet on every EVM chain the CLI supports, so
-there is no separate create step. Fund it with `npx circle wallet fund`, which uses a
+there is no separate create step. Fund it with `circle wallet fund`, which uses a
 faucet on testnet.
 
 Then set the address and chain the rest of this skill uses:
 
 ```bash
-export WALLET="0x..."     # npx circle wallet status shows it
+export WALLET="0x..."     # circle wallet status shows it
 export CHAIN="BASE"
 ```
 
@@ -733,7 +778,7 @@ Polygon is `MATIC`, not `POLYGON`.
 > **Tech note.** Always pass `-X` explicitly. Supplying `--data` without it defaults the
 > method to POST, and a request that should have been a GET is refused *after* the
 > payment has settled. `--max-amount` is a spend limit in USDC; on mainnet
-> `npx circle wallet limit` sets a standing per-wallet limit that applies even when you
+> `circle wallet limit` sets a standing per-wallet limit that applies even when you
 > forget the flag.""",
         "pitfalls": r"""1. **Reading the wrong block from `circle wallet status`** and running against an
    expired session on the other network.
@@ -750,7 +795,8 @@ Polygon is `MATIC`, not `POLYGON`.
     "size_ceiling": SMALL_ARCHIVE_NOTE,
         "call": agentcash,
         "wallet_name": "AgentCash",
-        "version": "0.1.0",
+        "bins": ["agentcash", "curl", "jq"],
+        "version": "0.2.0",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -772,15 +818,17 @@ to do with it on SpawnXchange.""",
             "`agentcash check` will also confirm the request shape before you pay,\n"
             "which catches a mistyped field that would otherwise fail after the payment:"
         ),
-        "quote_cmd": 'npx agentcash check "$SX/api/v1/items/$ITEM/acquire"',
-        "prereq": r"""## Setting up
+        "quote_cmd": 'agentcash check "$SX/api/v1/items/$ITEM/acquire"',
+        "prereq": """## Setting up
 
 You need Node.js and npm, then an AgentCash wallet with some USDC in it.
+
+""" + install_note("agentcash", PINS["agentcash"]) + r"""
 
 Creating a wallet needs a claim code from `agentcash.dev/onboarding`:
 
 ```bash
-npx agentcash@latest onboard <CODE>
+agentcash onboard <CODE>
 ```
 
 That creates a local wallet and prints its address. Fund it by sending USDC to that
@@ -791,7 +839,7 @@ If you would rather call AgentCash as a tool than as a command, it also runs as 
 server. For Claude Code:
 
 ```bash
-claude mcp add agentcash --scope user -- npx -y agentcash@latest
+claude mcp add agentcash --scope user -- npx -y agentcash@0.17.1
 ```
 
 Other agents configure MCP servers in their own way, which AgentCash's documentation
@@ -831,7 +879,8 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "size_ceiling": SMALL_ARCHIVE_NOTE,
     "call": awal,
     "wallet_name": "awal",
-    "version": "0.1.0",
+    "bins": ["awal", "curl", "jq"],
+    "version": "0.2.0",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -846,7 +895,7 @@ on your behalf. Give `awal x402 pay` a URL and it makes the request, notices whe
 service asks to be paid, signs the payment and retries — so every SpawnXchange request
 below, paid or free, is one command.
 
-Coinbase's own skills cover installing and funding it — `npx skills add
+Coinbase's own skills cover installing and funding it — `npx --yes skills@1.5.24 add
 coinbase/agentic-wallet-skills`, with documentation at
 `https://docs.cdp.coinbase.com/agentic-wallet/cli/welcome`. This skill covers what to do
 with it on SpawnXchange.""",
@@ -859,25 +908,27 @@ with it on SpawnXchange.""",
         '-H \'Content-Type: application/json\' -d \'{}\' \\\n'
         '  | jq -r \'.accepts[] | "\\(.amount) raw on \\(.network)"\''
     ),
-    "prereq": r"""## Setting up
+    "prereq": """## Setting up
 
 You need Node.js and npm, then an authenticated awal wallet with some USDC on Base.
 
+""" + install_note("awal", PINS["awal"]) + r"""
+
 ```bash
-npx awal auth login <email>     # emails you a 6-digit code
-npx awal auth verify <otp>
-npx awal status --json          # shows your wallet address
-npx awal balance --chain base
+awal auth login <email>     # emails you a 6-digit code
+awal auth verify <otp>
+awal status --json          # shows your wallet address
+awal balance --chain base
 ```
 
-Fund it with `npx awal show`, which opens the wallet window.
+Fund it with `awal show`, which opens the wallet window.
 
 **On a server or in a container this needs a display shim.** awal bundles a desktop app,
 so with no display every command hangs or dies at startup — which looks like an
 authentication problem and is not one:
 
 ```bash
-ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a npx awal status --json
+ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 ```
 
 ## Chains
@@ -921,7 +972,8 @@ This is the thing the other wallets cannot do: their body options only take a st
 they stop at roughly a 96 KB archive.""",
     "call": cdp,
     "wallet_name": "The CDP CLI",
-    "version": "0.2.0",
+    "bins": ["cdp", "curl", "jq"],
+    "version": "0.3.0",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1019,11 +1071,13 @@ the earlier signature no longer matches, and each is single-use and short-lived.
 
 The rest of this skill uses the wrapper.
 
-Two things it does that the four steps above do not. It refuses any request that would
+Three things it does that the four steps above do not. It refuses any request that would
 spend money unless you pass `--execute` first, printing the price instead — so a cost is
-always seen before it is paid; free identity requests run without it. And `--network`
-narrows a multi-chain reply to the one you name, so a payment cannot be signed for a chain
-you did not choose. Without it, a paid request offering several chains stops and asks.
+always seen before it is paid; free identity requests run without it. `--network` narrows
+a multi-chain reply to the one you name, so a payment cannot be signed for a chain you did
+not choose; without it, a paid request offering several chains stops and asks. And it
+refuses any URL that is not `https` on a `spawnxchange.com` host — whatever answers decides
+what gets signed, so the set of hosts allowed to answer is part of the wrapper's job.
 
 ```bash
 export WALLET_ADDRESS="0x..."
@@ -1041,18 +1095,18 @@ export WALLET_ADDRESS="0x..."
 # own way of getting a large file into it.
 LIST_CMD = {
     "spawnxchange-circle-wallet": (
-        'npx circle services pay "$SX/api/v1/items" \\\n'
+        'circle services pay "$SX/api/v1/items" \\\n'
         '  --address "$WALLET" --chain "$CHAIN" \\\n'
         '  -X POST -H "Content-Type: application/json" \\\n'
         '  --data "$(cat ./listing-body.json)" \\\n'
         '  --max-amount 0.05 --output json'),
     "spawnxchange-awal": (
-        'npx awal x402 pay "$SX/api/v1/items" \\\n'
+        'awal x402 pay "$SX/api/v1/items" \\\n'
         '  -X POST -d "$(cat ./listing-body.json)" \\\n'
         '  -h \'{"Content-Type":"application/json"}\' \\\n'
         '  --max-amount 50000 --json'),
     "spawnxchange-agentcash": (
-        'npx agentcash fetch "$SX/api/v1/items" \\\n'
+        'agentcash fetch "$SX/api/v1/items" \\\n'
         '  -m POST -H "Content-Type: application/json" \\\n'
         '  -b "$(cat ./listing-body.json)" \\\n'
         '  --payment-protocol x402 --payment-network "$NETWORK" --max-amount 0.05'),
@@ -1181,6 +1235,7 @@ def render(slug, spec):
     cap = spec["cap"]
     return "".join([
         frontmatter(slug, spec["description"], spec["version"], spec["tags"],
+                    ", ".join(spec["bins"]),
                     "keep a local purchase and listing ledger; see the end of this skill"),
         f"\n# {spec['title']}\n",
         WHAT_IS_SPAWNXCHANGE,

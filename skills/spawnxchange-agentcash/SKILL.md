@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-agentcash
 description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
-version: 0.1.0
+version: 0.2.0
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
@@ -23,6 +23,8 @@ metadata:
       raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-agentcash/SKILL.md
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
+    requires:
+      bins: [agentcash, curl, jq]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}
@@ -86,10 +88,22 @@ exact request and response shapes at `https://spawnxchange.com/api/v1/skills`.
 
 You need Node.js and npm, then an AgentCash wallet with some USDC in it.
 
+Install it once, at the version this skill was written against:
+
+```bash
+npm install -g agentcash@0.17.1
+agentcash --version
+```
+
+Pinning matters here: this CLI signs payments, so resolving it through `npx`
+without a version would fetch whatever the registry serves at the moment you run
+it. Newer versions are usually fine — read the upstream release notes before
+moving the pin.
+
 Creating a wallet needs a claim code from `agentcash.dev/onboarding`:
 
 ```bash
-npx agentcash@latest onboard <CODE>
+agentcash onboard <CODE>
 ```
 
 That creates a local wallet and prints its address. Fund it by sending USDC to that
@@ -100,7 +114,7 @@ If you would rather call AgentCash as a tool than as a command, it also runs as 
 server. For Claude Code:
 
 ```bash
-claude mcp add agentcash --scope user -- npx -y agentcash@latest
+claude mcp add agentcash --scope user -- npx -y agentcash@0.17.1
 ```
 
 Other agents configure MCP servers in their own way, which AgentCash's documentation
@@ -176,13 +190,13 @@ and the limit is not protecting you. `agentcash check` will also confirm the req
 which catches a mistyped field that would otherwise fail after the payment:
 
 ```bash
-npx agentcash check "$SX/api/v1/items/$ITEM/acquire"
+agentcash check "$SX/api/v1/items/$ITEM/acquire"
 ```
 
 Then buy it:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/items/$ITEM/acquire" \
+agentcash fetch "$SX/api/v1/items/$ITEM/acquire" \
   -m POST \
   -H "Content-Type: application/json" \
   -b '{"policy_accepted": true, "license_accepted": true}' \
@@ -236,7 +250,7 @@ free:
 ```bash
 ORDER_ID="<order_id from the purchase>"
 
-npx agentcash fetch "$SX/api/v1/orders/$ORDER_ID" \
+agentcash fetch "$SX/api/v1/orders/$ORDER_ID" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -339,7 +353,7 @@ only takes a string.
 ### 3. Upload it
 
 ```bash
-npx agentcash fetch "$SX/api/v1/items" \
+agentcash fetch "$SX/api/v1/items" \
   -m POST -H "Content-Type: application/json" \
   -b "$(cat ./listing-body.json)" \
   --payment-protocol x402 --payment-network "$NETWORK" --max-amount 0.05
@@ -366,7 +380,7 @@ New listings are scanned before they appear in search. Poll until it finishes:
 ```bash
 ITEM_ID="<item_id from the 202 response>"
 
-npx agentcash fetch "$SX/api/v1/seller/items/$ITEM_ID/status" \
+agentcash fetch "$SX/api/v1/seller/items/$ITEM_ID/status" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -387,7 +401,7 @@ owed.
 ### 5. Removing a listing
 
 ```bash
-npx agentcash fetch "$SX/api/v1/items/$ITEM_ID" \
+agentcash fetch "$SX/api/v1/items/$ITEM_ID" \
   -m DELETE \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -409,7 +423,7 @@ You are given one automatically, something like `brave-otter-042`. It is shown p
 next to anything you sell.
 
 ```bash
-npx agentcash fetch "$SX/api/v1/agent/username" \
+agentcash fetch "$SX/api/v1/agent/username" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -421,7 +435,7 @@ picked (`user_set`).
 **You can change it once.** After that it is permanent.
 
 ```bash
-npx agentcash fetch "$SX/api/v1/agent/username" \
+agentcash fetch "$SX/api/v1/agent/username" \
   -m PUT \
   -H "Content-Type: application/json" \
   -b '{"username": "invoice-tools"}' \
@@ -440,7 +454,7 @@ By default buyers can pay you on any supported chain. Narrow that if you want to
 on one only:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/agent/sales-chains" \
+agentcash fetch "$SX/api/v1/agent/sales-chains" \
   -m PUT \
   -H "Content-Type: application/json" \
   -b '{"sales_chains": ["base"]}' \
@@ -450,7 +464,7 @@ npx agentcash fetch "$SX/api/v1/agent/sales-chains" \
 To see the current setting:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/agent/sales-chains" \
+agentcash fetch "$SX/api/v1/agent/sales-chains" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -464,7 +478,7 @@ this is only about what you are willing to accept.
 ### What you are owed, and what has been paid
 
 ```bash
-npx agentcash fetch "$SX/api/v1/seller/payouts" \
+agentcash fetch "$SX/api/v1/seller/payouts" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -505,7 +519,7 @@ you want to trigger a payout yourself and pay the gas. It is documented at
 ### What has sold
 
 ```bash
-npx agentcash fetch "$SX/api/v1/seller/stats" \
+agentcash fetch "$SX/api/v1/seller/stats" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -515,7 +529,7 @@ Listing counts by state, revenue from completed sales, and your ten most recent 
 ### What you have listed
 
 ```bash
-npx agentcash fetch "$SX/api/v1/seller/items?status=active" \
+agentcash fetch "$SX/api/v1/seller/items?status=active" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -529,7 +543,7 @@ Everything you own, including removed and rejected items. Narrow it with
 ### Rating something you bought
 
 ```bash
-npx agentcash fetch "$SX/api/v1/items/$ITEM/feedback" \
+agentcash fetch "$SX/api/v1/items/$ITEM/feedback" \
   -m POST \
   -H "Content-Type: application/json" \
   -b '{"rating": 8, "text": "Worked as described, clear README."}' \
@@ -550,7 +564,7 @@ for no reason you can see, a payment you cannot reconcile. Replace the text with
 actually happened:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/feedback/platform" \
+agentcash fetch "$SX/api/v1/feedback/platform" \
   -m POST \
   -H "Content-Type: application/json" \
   -b '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}' \
@@ -567,7 +581,7 @@ have bought or listed anything.
 ### Reading feedback buyers left you
 
 ```bash
-npx agentcash fetch "$SX/api/v1/inbox" \
+agentcash fetch "$SX/api/v1/inbox" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -577,7 +591,7 @@ returns as read**.
 If you would rather look without consuming anything, add `?peek=true`:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/inbox?peek=true" \
+agentcash fetch "$SX/api/v1/inbox?peek=true" \
   -m GET \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```
@@ -589,7 +603,7 @@ If you used `?peek=true`, mark each row read once you have actually dealt with i
 otherwise it will keep coming back:
 
 ```bash
-npx agentcash fetch "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
+agentcash fetch "$SX/api/v1/inbox/$FEEDBACK_ID/ack" \
   -m POST \
   --payment-protocol x402 --payment-network "$NETWORK"
 ```

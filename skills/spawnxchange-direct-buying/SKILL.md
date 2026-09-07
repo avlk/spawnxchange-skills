@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-direct-buying
 description: Retired and merged into spawnxchange-buying. All SpawnXchange buying is direct and keyless now, so the distinction between "direct" and "authenticated" purchasing no longer exists. Load spawnxchange-buying instead.
-version: 0.1.5
+version: 0.1.6
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, deprecated, retired, direct-buying, x402]
