@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Look over an artifact archive before you publish it.
+"""Look over an artifact folder before you package and publish it.
 
-Standard library only. No network access, no credentials, nothing extracted:
-this reads one archive and tells you what is in it that you may not want to sell.
+Standard library only. No network access, no credentials, nothing written and
+nothing copied: this reads one folder and tells you what is in it that you may
+not want to sell, while changing it is still cheap.
+
+Check the folder, fix what it finds, check again, and only then package. That
+order is the point — once the archive exists, every fix means building it again,
+and once it is listed the bytes are with buyers.
 
 It is advisory. It is not the marketplace's safety scan, it does not predict
 that scan's verdict, and passing here is not approval — it is one careful look
@@ -12,8 +17,7 @@ as you upload them.
 Two severities:
 
   STOP  Something that does not belong in a listing at all: a compiled program,
-        an archive nested inside this one, a vendored dependency tree, or an
-        archive whose own structure is unsafe.
+        an archive nested inside your source, or a vendored dependency tree.
   LOOK  Something worth a human decision. For each one you are deciding between
         three things: it is a fair part of what you are selling, it is a leak
         you want to remove, or it is something that should not be published.
@@ -21,16 +25,10 @@ Two severities:
 """
 
 import argparse
+import os
 import re
-import stat
-import struct
 import sys
-import tarfile
-import zipfile
 from pathlib import Path
-
-# The API's own upload limit, checked here so a doomed upload fails for free.
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 # Directories that carry somebody else's code, your version control history, or a
 # build cache. None of it is what a buyer is paying for, all of it bloats the
@@ -51,9 +49,14 @@ BUILD_DIRS = {"dist", "build", "target", "out", ".next", ".nuxt", ".output"}
 SCAN_BYTES_PER_ENTRY = 128 * 1024
 SNIFF_BYTES = 8192
 
-CONTROL_CHAR_CODEPOINTS = frozenset(range(0x20)) | {0x7F}
+# A folder belongs to the operator, so these are not defences against a hostile
+# input the way an archive reader's would be. They are here so that pointing this
+# at the wrong directory reports that it is too big and stops, instead of walking
+# a filesystem until something runs out of memory.
+MAX_FILES = 20000
+MAX_TOTAL_SCANNED = 64 * 1024 * 1024
+
 NUL_BYTE = bytes([0])
-WINDOWS_DRIVE_PATTERN = re.compile(r"^[a-zA-Z]:[\\/]")
 
 # What `file` looks for. Executable code is a different finding from binary
 # data: a compiled program is dead weight a buyer cannot read or review, while a
@@ -245,26 +248,8 @@ def looks_binary(data):
     return None, None
 
 
-def normalize_entry_name(raw_name):
-    """Return (normalized, problem) for one archive member name."""
-    if not raw_name:
-        return None, "the archive contains an entry with no name"
-    if any(ord(character) in CONTROL_CHAR_CODEPOINTS for character in raw_name):
-        return None, f"an entry name contains control characters: {raw_name!r}"
-    normalized = raw_name.replace("\\", "/")
-    if (normalized.startswith("/") or raw_name.startswith("\\")
-            or WINDOWS_DRIVE_PATTERN.match(raw_name)):
-        return None, f"an entry is an absolute path: {raw_name}"
-    segments = [s for s in normalized.split("/") if s]
-    if not segments:
-        return None, f"an entry resolves to an empty path: {raw_name}"
-    if any(s in (".", "..") for s in segments):
-        return None, f"an entry points outside the archive: {raw_name}"
-    return "/".join(segments), None
-
-
 class Entry:
-    """One archive member, read in memory. Nothing is ever extracted to disk."""
+    """One file, sampled in memory. Nothing is ever copied or extracted."""
 
     def __init__(self, name, size, data):
         self.name = name
@@ -272,73 +257,104 @@ class Entry:
         self.data = data
 
 
-def _has_embedded_null(raw_archive_bytes, info):
-    """Python truncates decoded ZIP names at the first NUL; check raw bytes."""
-    try:
-        offset = info.header_offset
-        if offset + 30 > len(raw_archive_bytes):
-            return False
-        name_length = struct.unpack_from("<H", raw_archive_bytes, offset + 26)[0]
-        if offset + 30 + name_length > len(raw_archive_bytes):
-            return False
-        raw_name = raw_archive_bytes[offset + 30: offset + 30 + name_length]
-    except Exception:
-        return False
-    return NUL_BYTE in raw_name.rstrip(NUL_BYTE)
+class _Budget:
+    """What one folder is allowed to cost this process.
+
+    The folder belongs to the operator, so this is not a defence against a
+    hostile input the way an archive reader needs to be. It is here so that
+    pointing this script at the wrong directory — a home directory, a filesystem
+    root — reports that it is too big and stops, rather than walking until
+    something runs out of memory.
+    """
+
+    def __init__(self):
+        self.files = 0
+        self.scanned = 0
+
+    def add_file(self):
+        self.files += 1
+        if self.files > MAX_FILES:
+            return (f"the folder holds more than {MAX_FILES} files. That is far more "
+                    f"than a source listing normally contains — check that this is "
+                    f"the directory you meant.")
+        return None
+
+    def take(self, want):
+        """How much of `want` there is still room to read."""
+        return max(0, min(want, MAX_TOTAL_SCANNED - self.scanned))
+
+    def spend(self, count):
+        self.scanned += count
 
 
-def _read_zip(path):
-    problems, entries, seen = [], [], set()
-    raw = path.read_bytes()
-    with zipfile.ZipFile(path) as archive:
-        for info in archive.infolist():
-            if _has_embedded_null(raw, info):
-                problems.append(f"an entry name contains a null byte: {info.filename}")
+def _read_folder(root):
+    """Walk `root` and sample every file in it.
+
+    Returns (problems, entries, total_bytes). Symbolic links are reported and
+    never followed: following one would take the walk outside the folder, and a
+    link is not something an archive of source code should be carrying anyway.
+    """
+    problems, entries, total = [], [], 0
+    budget = _Budget()
+
+    for directory, subdirectories, filenames in os.walk(root, followlinks=False):
+        here = Path(directory)
+        # Prune symlinked directories before descending, and say so.
+        kept = []
+        for name in sorted(subdirectories):
+            if (here / name).is_symlink():
+                problems.append(
+                    f"a directory is a symbolic link and was not followed: "
+                    f"{(here / name).relative_to(root).as_posix()}/")
+            else:
+                kept.append(name)
+        subdirectories[:] = kept
+
+        for name in sorted(filenames):
+            item = here / name
+            relative = item.relative_to(root).as_posix()
+
+            if item.is_symlink():
+                problems.append(f"a file is a symbolic link: {relative}")
                 continue
-            name, problem = normalize_entry_name(info.filename)
+            if not item.is_file():
+                # A socket or device node. Not sellable, and not readable either.
+                problems.append(f"an entry is not a regular file: {relative}")
+                continue
+
+            problem = budget.add_file()
             if problem:
                 problems.append(problem)
+                return problems, entries, total
+
+            try:
+                size = item.stat().st_size
+                with item.open("rb") as handle:
+                    data = handle.read(budget.take(SCAN_BYTES_PER_ENTRY))
+            except OSError as error:
+                problems.append(f"a file could not be read: {relative} ({error})")
                 continue
-            if info.flag_bits & 0x1:
-                problems.append(f"an entry is encrypted and cannot be reviewed: {name}")
-                continue
-            if info.is_dir():
-                continue
-            mode = (info.external_attr >> 16) & 0xFFFF
-            if mode and stat.S_ISLNK(mode):
-                problems.append(f"an entry is a symbolic link: {name}")
-                continue
-            if name in seen:
-                problems.append(f"the archive contains the same path twice: {name}")
-                continue
-            seen.add(name)
-            with archive.open(info) as handle:
-                entries.append(Entry(name, int(info.file_size or 0),
-                                     handle.read(SCAN_BYTES_PER_ENTRY)))
-    return problems, entries
+
+            budget.spend(len(data))
+            total += size
+            entries.append(Entry(relative, size, data))
+
+    return problems, entries, total
 
 
-def _read_tar(path):
-    problems, entries, seen = [], [], set()
-    with tarfile.open(path) as archive:
-        for member in archive.getmembers():
-            name, problem = normalize_entry_name(member.name)
-            if problem:
-                problems.append(problem)
-                continue
-            if member.issym() or member.islnk():
-                problems.append(f"an entry is a link: {name}")
-                continue
-            if not member.isfile():
-                continue
-            if name in seen:
-                problems.append(f"the archive contains the same path twice: {name}")
-                continue
-            seen.add(name)
-            handle = archive.extractfile(member)
-            entries.append(Entry(name, int(member.size or 0),
-                                 handle.read(SCAN_BYTES_PER_ENTRY) if handle else b""))
-    return problems, entries
+def suggest_pack_command(root, excluded):
+    """The tar command that packages this folder without what was flagged.
+
+    The point of checking before packaging is that the fix is still cheap, so
+    the script says what the fix looks like rather than leaving it as an
+    exercise. Directories only: a single leaked file is a decision, not
+    something to paper over with an exclude.
+    """
+    name = Path(root).resolve().name or "artifact"
+    if not excluded:
+        return f"tar -czf {name}.tar.gz -C {root} ."
+    flags = " ".join(f"--exclude='./{directory}'" for directory in sorted(excluded))
+    return f"tar -czf {name}.tar.gz -C {root} {flags} ."
 
 
 def plural(count):
@@ -353,31 +369,22 @@ def directory_of(name, groups):
     return None
 
 
-def precheck_archive(archive_path):
-    """Read the archive and describe what is in it. Returns a plain dict."""
-    path = Path(archive_path)
-    if not path.is_file():
-        raise PrecheckError(f"archive not found: {path}")
+def precheck_folder(folder_path):
+    """Read the folder and describe what is in it. Returns a plain dict."""
+    root = Path(folder_path)
+    if not root.is_dir():
+        raise PrecheckError(f"not a folder: {root}")
 
-    name = path.name.lower()
     try:
-        if name.endswith(".zip"):
-            problems, entries = _read_zip(path)
-        elif name.endswith((".tar.gz", ".tgz")):
-            problems, entries = _read_tar(path)
-        else:
-            raise PrecheckError(
-                f"unsupported archive type: {path.name} (use .zip or .tar.gz)")
-    except (zipfile.BadZipFile, tarfile.TarError, OSError) as exc:
-        raise PrecheckError(f"the archive could not be read: {exc}") from exc
+        problems, entries, total_bytes = _read_folder(root)
+    except OSError as exc:
+        raise PrecheckError(f"the folder could not be read: {exc}") from exc
 
-    stop = [("archive structure", problem) for problem in problems]
+    if not entries and not problems:
+        raise PrecheckError(f"the folder is empty: {root}")
+
+    stop = [("folder structure", problem) for problem in problems]
     look = []
-
-    upload_bytes = path.stat().st_size
-    if upload_bytes > MAX_UPLOAD_BYTES:
-        stop.append(("too large",
-                     f"the archive is {upload_bytes} bytes; the limit is {MAX_UPLOAD_BYTES}"))
 
     vendored, build = {}, {}
     for entry in entries:
@@ -420,36 +427,40 @@ def precheck_archive(archive_path):
 
     for directory, count in sorted(vendored.items()):
         stop.append(("vendored code",
-                     f"{directory}/ is in the archive ({plural(count)}). Buyers are "
+                     f"{directory}/ is in the folder ({plural(count)}). Buyers are "
                      "not paying for this, and it hides code nobody reviewed."))
     for directory, count in sorted(build.items()):
         look.append(("build output", f"{directory}/",
                      f"{plural(count)}. Ship it only if a buyer needs it."))
 
+    excluded = sorted(set(vendored) | set(build))
     return {
-        "archive": str(path),
-        "upload_bytes": upload_bytes,
+        "folder": str(root),
+        "total_bytes": total_bytes,
         "entries": len(entries),
         "stop": stop,
         "look": look,
+        "pack_command": suggest_pack_command(root, excluded),
+        "excluded": excluded,
     }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Look over an artifact archive before publishing it.")
-    parser.add_argument("--archive", required=True, help=".zip or .tar.gz to inspect")
+        description="Look over an artifact folder before you package and publish it.")
+    parser.add_argument("--folder", required=True,
+                        help="the source folder you are about to package")
     parser.add_argument("--max-examples", type=int, default=5,
                         help="examples to print per category (default 5)")
     args = parser.parse_args()
 
     try:
-        result = precheck_archive(args.archive)
+        result = precheck_folder(args.folder)
     except PrecheckError as error:
         parser.exit(1, f"error: {error}\n")
 
-    print(f"archive   {result['archive']}")
-    print(f"contents  {result['entries']} files, {result['upload_bytes']} bytes")
+    print(f"folder    {result['folder']}")
+    print(f"contents  {result['entries']} files, {result['total_bytes']} bytes uncompressed")
     print()
 
     if result["stop"]:
@@ -477,9 +488,18 @@ def main():
         print("Nothing stood out.")
         print()
 
+    print("Package it with:")
+    print(f"  {result['pack_command']}")
+    if result["excluded"]:
+        print("  (the excludes above are what this check flagged)")
+    print()
+    print("Then check the archive's size before you list it: the marketplace takes")
+    print("10 MB at most, and that limit is on the packaged archive, not on the")
+    print("figure above.")
+    print()
     print("This is one careful look, not the marketplace's safety review, and it")
-    print("does not predict that review's outcome. Buyers receive this archive")
-    print("exactly as you upload it.")
+    print("does not predict that review's outcome. Buyers receive the archive you")
+    print("upload exactly as you upload it, so what you package is what they get.")
 
     return 2 if result["stop"] else 0
 
