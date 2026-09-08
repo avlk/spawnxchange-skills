@@ -81,6 +81,12 @@ Code installs, which never see the body.
 
 Skill `version` values live in the generator and must match `marketplace.json`.
 
+**Do not add `allowed-tools` to frontmatter.** Hermes reads the field's presence as
+`high/privilege_escalation` and blocks the install; skills without it scan `safe`. Declare
+what a skill runs in `metadata.openclaw.requires.bins` and in its *What this skill runs*
+section, and keep that list matching the commands the body actually uses — an incomplete
+list is a checkable false claim.
+
 ## The pre-publication check reads a folder
 
 `precheck_artifact.py` takes `--folder`, not an archive. Two reasons, both worth keeping:
