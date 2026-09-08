@@ -34,7 +34,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 RAW = "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills"
 
-# Reviewed npm versions, checked 2026-09-07.
+# Reviewed npm versions, checked 2026-09-08 — all three were still latest.
+#
+# The CDP CLI is deliberately absent. That skill installs nothing: the operator
+# arrives with `cdp` already configured, so there is no pin for this repository
+# to hold. `CDP_TESTED_VERSION` below records what its commands were checked
+# against instead.
 #
 # Every wallet CLI is installed once, at an exact version, and then invoked by
 # name. The alternative — `npx <pkg>` in each of the forty-odd examples — resolves
@@ -50,6 +55,12 @@ PINS = {
     "agentcash": "agentcash@0.17.1",
     "skills": "skills@1.5.24",
 }
+
+# The CDP CLI release this skill's command surface was verified against:
+# `cdp env`, `cdp evm accounts list`, `cdp evm accounts sign typed-data`, and
+# `cdp util x402 build` / `encode` with the flags the skill passes. Verified as
+# existing and accepting those flags — not an end-to-end payment test.
+CDP_TESTED_VERSION = "2.0.79"
 
 
 def install_note(binary, package):
@@ -1117,6 +1128,11 @@ and wallet setup.""",
 The CDP CLI must already be installed and configured (`cdp env live`), with a wallet your
 owner has provisioned. **Do not create wallets or change CDP environments yourself.** You
 also need `jq`.
+
+This skill installs nothing and pins nothing — you arrive with `cdp` already set up. Its
+commands were checked against **CDP CLI """ + CDP_TESTED_VERSION + """**; run `cdp --version`
+to see what you have. A newer one is normally fine — but if `cdp util x402 build` or
+`cdp evm accounts sign typed-data` ever moves, that is where this skill breaks first.
 
 ```bash
 export WALLET_ADDRESS="0x..."

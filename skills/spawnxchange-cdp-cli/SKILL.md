@@ -117,6 +117,11 @@ The CDP CLI must already be installed and configured (`cdp env live`), with a wa
 owner has provisioned. **Do not create wallets or change CDP environments yourself.** You
 also need `jq`.
 
+This skill installs nothing and pins nothing — you arrive with `cdp` already set up. Its
+commands were checked against **CDP CLI 2.0.79**; run `cdp --version`
+to see what you have. A newer one is normally fine — but if `cdp util x402 build` or
+`cdp evm accounts sign typed-data` ever moves, that is where this skill breaks first.
+
 ```bash
 export WALLET_ADDRESS="0x..."
 cdp evm accounts list          # confirm this environment can sign for it
@@ -135,33 +140,18 @@ TEMP_DIR=$(mktemp -d) && chmod 700 "$TEMP_DIR"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # 1. Ask without paying. The reply says what is required.
-curl -sS -X POST -H "Content-Type: application/json" -d '{}' \
-  "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
+curl -sS -X POST -H "Content-Type: application/json" -d '{}'   "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
 
 # 2. Build the payment from exactly those requirements.
-cdp util x402 build --from "$WALLET_ADDRESS" \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  > "$TEMP_DIR/typed_data.json"
+cdp util x402 build --from "$WALLET_ADDRESS"   --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")"   > "$TEMP_DIR/typed_data.json"
 
 # 3. Sign it. The key stays inside CDP.
-cdp evm accounts sign typed-data "$WALLET_ADDRESS" \
-  primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")" \
-  domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")" \
-  message:="$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")" \
-  | jq -r '.signature' > "$TEMP_DIR/signature.txt"
+cdp evm accounts sign typed-data "$WALLET_ADDRESS"   primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")"   domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")"   message:="$(jq -c '.message' "$TEMP_DIR/typed_data.json")"   types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")"   | jq -r '.signature' > "$TEMP_DIR/signature.txt"
 
 # 4. Send the same request again, with the payment attached.
-cdp util x402 encode --x402-version 2 \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
-  --signature "$(cat "$TEMP_DIR/signature.txt")" \
-  --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
-  > "$TEMP_DIR/header.txt"
+cdp util x402 encode --x402-version 2   --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")"   --signature "$(cat "$TEMP_DIR/signature.txt")"   --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")"   > "$TEMP_DIR/header.txt"
 
-curl -sS -X POST -H "Content-Type: application/json" \
-  -H "PAYMENT-SIGNATURE: $(cat "$TEMP_DIR/header.txt")" \
-  -d '{"policy_accepted": true, "license_accepted": true}' \
-  "$SX/api/v1/items/$ITEM/acquire"
+curl -sS -X POST -H "Content-Type: application/json"   -H "PAYMENT-SIGNATURE: $(cat "$TEMP_DIR/header.txt")"   -d '{"policy_accepted": true, "license_accepted": true}'   "$SX/api/v1/items/$ITEM/acquire"
 ```
 
 ⚠️ Steps 2–4 must all use the same saved reply. Asking again produces a fresh one that
