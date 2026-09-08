@@ -33,6 +33,18 @@ run_lint_checks() {
       fail=1
     fi
 
+    echo "Checking the precheck never prints a matched secret..."
+    probe=$(mktemp -d)
+    printf 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIKcanaryEXAMPLEKEY\nDB_PASSWORD=hunter2canary\n' \
+      > "$probe/.env"
+    if python3 skills/spawnxchange-selling/scripts/precheck_artifact.py --folder "$probe" \
+         2>&1 | grep -qE 'wJalrXUtnFEMIKcanary|hunter2canary'; then
+      echo "ERROR: precheck_artifact.py printed a matched secret. It must report the" >&2
+      echo "       file and line only — this output reaches transcripts and CI logs." >&2
+      fail=1
+    fi
+    rm -rf "$probe"
+
     echo "Checking generated wallet skills are in sync with their template..."
     if ! python3 maintenance/generate-wallet-skills.py; then
       echo "ERROR: wallet SKILL.md files differ from maintenance/generate-wallet-skills.py." >&2

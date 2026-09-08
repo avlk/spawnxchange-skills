@@ -34,7 +34,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 RAW = "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills"
 
-# Reviewed npm versions, checked 2026-09-07.
+# Reviewed npm versions, checked 2026-09-08 — all three were still latest.
+#
+# The CDP CLI is deliberately absent. That skill installs nothing: the operator
+# arrives with `cdp` already configured, so there is no pin for this repository
+# to hold. `CDP_TESTED_VERSION` below records what its commands were checked
+# against instead.
 #
 # Every wallet CLI is installed once, at an exact version, and then invoked by
 # name. The alternative — `npx <pkg>` in each of the forty-odd examples — resolves
@@ -50,6 +55,12 @@ PINS = {
     "agentcash": "agentcash@0.17.1",
     "skills": "skills@1.5.24",
 }
+
+# The CDP CLI release this skill's command surface was verified against:
+# `cdp env`, `cdp evm accounts list`, `cdp evm accounts sign typed-data`, and
+# `cdp util x402 build` / `encode` with the flags the skill passes. Verified as
+# existing and accepting those flags — not an end-to-end payment test.
+CDP_TESTED_VERSION = "2.0.79"
 
 
 def install_note(binary, package):
@@ -698,12 +709,19 @@ def agentcash(method, url, body=None, cap=None):
 
 
 def cdp(method, url, body=None, cap=None):
-    # `cap` marks a call that spends money; x402-call.sh refuses those without
-    # --execute, so the price is always seen before it is paid.
-    execute = "--execute " if cap else ""
+    # `cap` marks a call that spends money. x402-call.sh refuses those without
+    # --execute, so the price is always seen before it is paid, and without
+    # --max-amount-raw, so the price is always compared against a number the
+    # operator chose rather than one the endpoint supplied.
+    lines = []
+    if cap:
+        lines.append(f"./x402-call.sh --execute --max-amount-raw {cap} \\")
+        lines.append(f'  {method} "{url}"' + (" \\" if body else ""))
+    else:
+        lines.append(f'./x402-call.sh {method} "{url}"' + (" \\" if body else ""))
     if body:
-        return f'./x402-call.sh {execute}{method} "{url}" \'{body}\''
-    return f'./x402-call.sh {execute}{method} "{url}"'
+        lines.append(f"  '{body}'")
+    return "\n".join(lines)
 
 
 SMALL_ARCHIVE_NOTE = """⚠️ **This works for archives up to roughly 96 KB.** The request body travels as a single
@@ -1043,7 +1061,8 @@ JSON — that avoids the extra third that base64 adds, which would push an 8 MB 
 past the 10 MB limit:
 
 ```bash
-./x402-call.sh --execute --upload ./artifact.zip --metadata ./metadata.json \
+./x402-call.sh --execute --max-amount-raw 50000 \
+  --upload ./artifact.zip --metadata ./metadata.json \
   POST "$SX/api/v1/items"
 ```
 
@@ -1057,11 +1076,18 @@ they stop at roughly a 96 KB archive.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
-    "cap": True,
+    "cap": '"$PRICE_RAW"',
+    "price_setup": r"""
+The wrapper wants that limit in raw units, so convert it once:
+
+```bash
+PRICE_RAW=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
+```
+""",
     "description": (
         "Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed "
         "by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, "
@@ -1102,6 +1128,11 @@ and wallet setup.""",
 The CDP CLI must already be installed and configured (`cdp env live`), with a wallet your
 owner has provisioned. **Do not create wallets or change CDP environments yourself.** You
 also need `jq`.
+
+This skill installs nothing and pins nothing — you arrive with `cdp` already set up. Its
+commands were checked against **CDP CLI """ + CDP_TESTED_VERSION + """**; run `cdp --version`
+to see what you have. A newer one is normally fine — but if `cdp util x402 build` or
+`cdp evm accounts sign typed-data` ever moves, that is where this skill breaks first.
 
 ```bash
 export WALLET_ADDRESS="0x..."
@@ -1169,10 +1200,13 @@ if ! [[ "$url" =~ ^https://([a-z0-9-]+\.)*spawnxchange\.com(/|$) ]]; then
 fi
 ```
 
-2. **Nothing spends money without `--execute`.** It prints the price from the challenge
-   and stops. A request is treated as free only when *every* requirement in the challenge
-   is zero, never when merely the first one is — and any price it cannot read as a plain
-   integer of raw units is refused rather than guessed at.
+2. **Nothing spends money without `--execute` and `--max-amount-raw`.** It prints the
+   price from the challenge and stops. A price you were shown is a report, not a limit —
+   the challenge is written by whoever answers the URL — so a paying call carries a
+   ceiling you chose beforehand, and a challenge asking for more is refused unsigned. A
+   request is treated as free only when *every* requirement is zero, never when merely
+   the first one is, and any price it cannot read as a plain integer of raw units is
+   refused rather than guessed at.
 3. **`--network` picks the chain**, so a payment cannot be signed for one you did not
    choose. A paid challenge offering several chains stops and asks for it.
 4. **An upload is `--upload` and `--metadata`, two file paths.** The script builds the
@@ -1219,7 +1253,9 @@ LIST_CMD = {
         '  --payment-protocol x402 --payment-network "$NETWORK" --max-amount 0.05'),
     "spawnxchange-cdp-cli": (
         '# @file streams the body instead of passing it as an argument.\n'
-        './x402-call.sh --execute POST "$SX/api/v1/items" "@./listing-body.json"'),
+        '# 50000 raw units caps the flat 0.01 USDC fee with room to spare.\n'
+        './x402-call.sh --execute --max-amount-raw 50000 \\\n'
+        '  POST "$SX/api/v1/items" "@./listing-body.json"'),
 }
 
 
