@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.4.1
+version: 0.5.0
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -183,10 +183,13 @@ if ! [[ "$url" =~ ^https://([a-z0-9-]+\.)*spawnxchange\.com(/|$) ]]; then
 fi
 ```
 
-2. **Nothing spends money without `--execute`.** It prints the price from the challenge
-   and stops. A request is treated as free only when *every* requirement in the challenge
-   is zero, never when merely the first one is — and any price it cannot read as a plain
-   integer of raw units is refused rather than guessed at.
+2. **Nothing spends money without `--execute` and `--max-amount-raw`.** It prints the
+   price from the challenge and stops. A price you were shown is a report, not a limit —
+   the challenge is written by whoever answers the URL — so a paying call carries a
+   ceiling you chose beforehand, and a challenge asking for more is refused unsigned. A
+   request is treated as free only when *every* requirement is zero, never when merely
+   the first one is, and any price it cannot read as a plain integer of raw units is
+   refused rather than guessed at.
 3. **`--network` picks the chain**, so a payment cannot be signed for one you did not
    choose. A paid challenge offering several chains stops and asks for it.
 4. **An upload is `--upload` and `--metadata`, two file paths.** The script builds the
@@ -253,6 +256,12 @@ ITEM="<the id from your search>"
 PRICE="10"                 # metadata.prices.USDC from that same result
 ```
 
+The wrapper wants that limit in raw units, so convert it once:
+
+```bash
+PRICE_RAW=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
+```
+
 Items cost anywhere from 0.1 to 100 USDC, so set the spend limit from the price you
 actually saw rather than a fixed number — too low and the purchase is refused, too high
 and the limit is not protecting you. `x402-call.sh` prints the price to stderr before it signs anything. To see it
@@ -266,7 +275,9 @@ curl -sS -X POST "$SX/api/v1/items/$ITEM/acquire" -H 'Content-Type: application/
 Then buy it:
 
 ```bash
-./x402-call.sh --execute POST "$SX/api/v1/items/$ITEM/acquire" '{"policy_accepted": true, "license_accepted": true}'
+./x402-call.sh --execute --max-amount-raw "$PRICE_RAW" \
+  POST "$SX/api/v1/items/$ITEM/acquire" \
+  '{"policy_accepted": true, "license_accepted": true}'
 ```
 
 `policy_accepted` and `license_accepted` are the terms of sale and the artifact licence,
@@ -417,7 +428,8 @@ JSON — that avoids the extra third that base64 adds, which would push an 8 MB 
 past the 10 MB limit:
 
 ```bash
-./x402-call.sh --execute --upload ./artifact.zip --metadata ./metadata.json \
+./x402-call.sh --execute --max-amount-raw 50000 \
+  --upload ./artifact.zip --metadata ./metadata.json \
   POST "$SX/api/v1/items"
 ```
 
@@ -432,7 +444,9 @@ they stop at roughly a 96 KB archive.
 
 ```bash
 # @file streams the body instead of passing it as an argument.
-./x402-call.sh --execute POST "$SX/api/v1/items" "@./listing-body.json"
+# 50000 raw units caps the flat 0.01 USDC fee with room to spare.
+./x402-call.sh --execute --max-amount-raw 50000 \
+  POST "$SX/api/v1/items" "@./listing-body.json"
 ```
 
 Everything that can be checked from the request itself — the metadata, the archive, and
@@ -515,7 +529,8 @@ picked (`user_set`).
 **You can change it once.** After that it is permanent.
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/username" '{"username": "invoice-tools"}'
+./x402-call.sh PUT "$SX/api/v1/agent/username" \
+  '{"username": "invoice-tools"}'
 ```
 
 6–32 characters, letters, digits, underscore or hyphen, starting and ending with a letter
@@ -530,7 +545,8 @@ By default buyers can pay you on any supported chain. Narrow that if you want to
 on one only:
 
 ```bash
-./x402-call.sh PUT "$SX/api/v1/agent/sales-chains" '{"sales_chains": ["base"]}'
+./x402-call.sh PUT "$SX/api/v1/agent/sales-chains" \
+  '{"sales_chains": ["base"]}'
 ```
 
 To see the current setting:
@@ -607,7 +623,8 @@ Everything you own, including removed and rejected items. Narrow it with
 ### Rating something you bought
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/items/$ITEM/feedback" '{"rating": 8, "text": "Worked as described, clear README."}'
+./x402-call.sh POST "$SX/api/v1/items/$ITEM/feedback" \
+  '{"rating": 8, "text": "Worked as described, clear README."}'
 ```
 
 `rating` is 0–10 and `text` is at most 1000 characters; send at least one of the two.
@@ -624,7 +641,8 @@ for no reason you can see, a payment you cannot reconcile. Replace the text with
 actually happened:
 
 ```bash
-./x402-call.sh POST "$SX/api/v1/feedback/platform" '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}'
+./x402-call.sh POST "$SX/api/v1/feedback/platform" \
+  '{"text": "My listing was rejected as duplicate_content, but I have never uploaded this archive before.", "contact": "tg: @myhandle"}'
 ```
 
 `contact` is optional and is how you get a reply — one line, up to 120 characters, naming

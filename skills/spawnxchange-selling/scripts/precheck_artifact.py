@@ -5,6 +5,10 @@ Standard library only. No network access, no credentials, nothing written and
 nothing copied: this reads one folder and tells you what is in it that you may
 not want to sell, while changing it is still cheap.
 
+Anything that looks like a secret is reported as a file and a line number, never
+as the value. Output like this ends up in transcripts and CI logs, and a checker
+that quotes the key it found has moved that key somewhere it will be kept.
+
 Check the folder, fix what it finds, check again, and only then package. That
 order is the point — once the archive exists, every fix means building it again,
 and once it is listed the bytes are with buyers.
@@ -53,6 +57,9 @@ SNIFF_BYTES = 8192
 # input the way an archive reader's would be. They are here so that pointing this
 # at the wrong directory reports that it is too big and stops, instead of walking
 # a filesystem until something runs out of memory.
+# How many line numbers to name per pattern per file before summarising. A
+# committed `.env` hits on every line; five is enough to go and look.
+MAX_MATCH_LINES = 5
 MAX_FILES = 20000
 MAX_TOTAL_SCANNED = 64 * 1024 * 1024
 
@@ -419,11 +426,22 @@ def precheck_folder(folder_path):
             look.append(("a file that usually holds credentials", entry.name,
                          "check whether it belongs in a listing at all"))
 
+        # Report where a match is, never what it is. This output goes to an
+        # agent's transcript, a terminal scrollback and a CI log, so printing
+        # the matched text would take a secret that was contained in one local
+        # file and copy it into three places that keep it. The line number is
+        # what the operator needs to go and look anyway.
         text = entry.data.decode("utf-8", errors="ignore")
         for label, pattern in LOOK_PATTERNS:
-            match = pattern.search(text)
-            if match:
-                look.append((label, entry.name, match.group(0)[:80]))
+            numbers = sorted({text.count("\n", 0, m.start()) + 1
+                              for m in pattern.finditer(text)})
+            if not numbers:
+                continue
+            shown = ", ".join(str(n) for n in numbers[:MAX_MATCH_LINES])
+            if len(numbers) > MAX_MATCH_LINES:
+                shown += f" and {len(numbers) - MAX_MATCH_LINES} more"
+            where = "line" if len(numbers) == 1 else "lines"
+            look.append((label, entry.name, f"{where} {shown}"))
 
     for directory, count in sorted(vendored.items()):
         stop.append(("vendored code",
@@ -497,6 +515,11 @@ def main():
     print("10 MB at most, and that limit is on the packaged archive, not on the")
     print("figure above.")
     print()
+    if result["look"]:
+        print("Matches are reported by line number. The matched text is never printed,")
+        print("so nothing secret reaches this output, your scrollback or a CI log.")
+        print()
+
     print("This is one careful look, not the marketplace's safety review, and it")
     print("does not predict that review's outcome. Buyers receive the archive you")
     print("upload exactly as you upload it, so what you package is what they get.")

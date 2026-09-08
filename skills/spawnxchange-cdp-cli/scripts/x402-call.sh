@@ -9,6 +9,10 @@
 #   FLAGS, before the method:
 #
 #     --execute            required before anything that actually costs money
+#     --max-amount-raw N   the most this call may spend, in raw units. Required
+#                          with --execute: a price read from the reply and shown
+#                          to you is not a limit, it is a report, and the reply
+#                          is written by whoever answers the URL.
 #     --network <caip2>    which chain to pay on, e.g. eip155:8453
 #     --upload <file>      send this file as the `file` part of a multipart
 #     --metadata <file>    with this JSON file as the `metadata` part
@@ -37,10 +41,11 @@ x402_call() {
   (
     set -euo pipefail
 
-    local execute=0 network="" upload="" metadata=""
+    local execute=0 network="" upload="" metadata="" max_amount=""
     while [ $# -gt 0 ]; do
       case "$1" in
-        --execute)  execute=1; shift ;;
+        --execute)        execute=1; shift ;;
+        --max-amount-raw) max_amount="$2"; shift 2 ;;
         --network)  network="$2"; shift 2 ;;
         --upload)   upload="$2"; shift 2 ;;
         --metadata) metadata="$2"; shift 2 ;;
@@ -152,8 +157,28 @@ x402_call() {
     if [ "$paid" -eq 1 ] && [ "$execute" -ne 1 ]; then
       echo >&2
       echo "This request costs money. Nothing has been paid." >&2
-      echo "Re-run with --execute as the first argument to pay it." >&2
+      echo "Re-run with --execute and --max-amount-raw to pay it." >&2
       return 3
+    fi
+
+    # A price that came from the reply and was printed for you is a report, not
+    # a limit. The limit is the number you decided on before you looked, so a
+    # paying call has to carry one.
+    if [ "$paid" -eq 1 ]; then
+      case "$max_amount" in
+        ''|*[!0-9]*)
+          echo "refusing: --max-amount-raw is required to spend, as a whole number" >&2
+          echo "of raw units. The endpoint is asking for:" >&2
+          jq -c "$amounts" "$work/accepts.json" >&2
+          return 2 ;;
+      esac
+      local asking
+      asking=$(jq -r "$amounts | .[0]" "$work/accepts.json")
+      if [ "$asking" -gt "$max_amount" ]; then
+        echo "refusing: the endpoint asks $asking raw units, over your" >&2
+        echo "--max-amount-raw of $max_amount. Nothing has been signed." >&2
+        return 1
+      fi
     fi
 
     # Nothing is signed against a set of requirements. One is chosen, or the
