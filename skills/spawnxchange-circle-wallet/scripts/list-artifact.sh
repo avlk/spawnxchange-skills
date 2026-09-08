@@ -30,8 +30,9 @@
 # Preflight by default: it uploads the unpaid request, prints the fee the
 # marketplace asks for, and stops. Pass --execute to pay it and publish.
 #
-# Requires: the Circle CLI, logged in, installed at the pinned version the skill
-# names (`npm install -g @circle-fin/cli@1.0.0`); curl; jq.
+# Requires: `circle`, `curl` and `jq` on PATH, and a logged-in Circle wallet. The
+# Circle CLI must already be installed — this script does not install it, and will
+# not reach for a package registry at signing time.
 
 list_artifact() {
   (
@@ -217,20 +218,23 @@ list_artifact() {
         }
       }' > "$work/typed.json"
 
-    # An installed `circle` is what the skill tells you to set up, and it is the
-    # one that was reviewed. Falling back to `npx` pins the version rather than
-    # taking whatever the registry happens to serve at signing time.
-    local -a circle_cli
-    if command -v circle >/dev/null 2>&1; then
-      circle_cli=(circle)
-    else
-      circle_cli=(npx --yes "@circle-fin/cli@1.0.0")
+    # No fallback here on purpose. This is the wallet-signing path, and a
+    # fallback that fetches and runs a package at the moment of signing puts the
+    # registry inside it: whoever can publish that package can sign with your
+    # key. Installing the CLI is a separate, deliberate step the operator takes
+    # once, and it is the version they reviewed.
+    if ! command -v circle >/dev/null 2>&1; then
+      echo "the Circle CLI is not on PATH." >&2
+      echo "Install it first, following Circle's own instructions at" >&2
+      echo "  https://developers.circle.com/agent-stack/agent-wallets" >&2
+      echo "then log in and re-run. This script will not install it for you." >&2
+      return 2
     fi
 
     echo >&2
-    echo "signing with the Circle CLI (${circle_cli[*]})..." >&2
+    echo "signing with the Circle CLI..." >&2
     local signature
-    signature=$("${circle_cli[@]}" wallet sign typed-data \
+    signature=$(circle wallet sign typed-data \
                   "$(jq -c . "$work/typed.json")" \
                   --address "$wallet" --chain "$chain" -q | tail -1 | tr -d ' \r')
     case "$signature" in

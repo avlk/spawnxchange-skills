@@ -3,18 +3,22 @@
 # Run one SpawnXchange x402 call with a CDP-managed wallet.
 #
 #   WALLET_ADDRESS=0x... ./x402-call.sh [FLAGS] <METHOD> <URL> [BODY]
-#   WALLET_ADDRESS=0x... ./x402-call.sh [FLAGS] <METHOD> <URL> --multipart <curl args...>
 #
-#     BODY         inline JSON, or @/path/to/file to stream a large body from disk
-#     --multipart  everything after it is passed to curl verbatim, for
-#                  `-F file=@artifact.zip -F metadata={...}` uploads. Use this for
-#                  a large archive: multipart sends the bytes as they are, while
-#                  base64-in-JSON adds a third to every one of them.
+#     BODY   inline JSON, or @/path/to/file to stream a large body from disk
 #
 #   FLAGS, before the method:
 #
 #     --execute            required before anything that actually costs money
 #     --network <caip2>    which chain to pay on, e.g. eip155:8453
+#     --upload <file>      send this file as the `file` part of a multipart
+#     --metadata <file>    with this JSON file as the `metadata` part
+#
+# --upload is how a listing larger than the shell's argument limit is sent: the
+# bytes go as they are, where base64-in-JSON would add a third to every one of
+# them. The two parts are the only multipart form this API has, so the script
+# builds them itself rather than taking form arguments — anything it passed
+# through to curl could name a second destination, and the PAYMENT-SIGNATURE
+# header goes to every destination curl is given.
 #
 # Works for paid routes and for free 0 USDC identity routes alike — the amount
 # comes from the challenge, not from here. A free call runs as-is; a call that
@@ -33,11 +37,13 @@ x402_call() {
   (
     set -euo pipefail
 
-    local execute=0 network=""
+    local execute=0 network="" upload="" metadata=""
     while [ $# -gt 0 ]; do
       case "$1" in
-        --execute) execute=1; shift ;;
-        --network) network="$2"; shift 2 ;;
+        --execute)  execute=1; shift ;;
+        --network)  network="$2"; shift 2 ;;
+        --upload)   upload="$2"; shift 2 ;;
+        --metadata) metadata="$2"; shift 2 ;;
         *) break ;;
       esac
     done
@@ -46,6 +52,23 @@ x402_call() {
     local url="${2:?url required}"
     local wallet="${WALLET_ADDRESS:?WALLET_ADDRESS must be set to your CDP wallet address}"
     shift 2
+
+    # Flags are read before the method, so anything still dash-shaped here was
+    # written after the URL and would otherwise be sent as the request body
+    # without a word. Say so instead.
+    local body="${1:-}"
+    case "$body" in
+      --*) echo "flags go before the method, not after the URL: $body" >&2; return 2 ;;
+    esac
+    [ $# -le 1 ] || { echo "unexpected extra arguments: ${*:2}" >&2; return 2; }
+    if [ -n "$upload" ] && [ -n "$body" ]; then
+      echo "--upload sends the request body; do not also pass one" >&2
+      return 2
+    fi
+    if [ -z "$upload" ] && [ -n "$metadata" ]; then
+      echo "--metadata is part of an upload; pass --upload too" >&2
+      return 2
+    fi
 
     # Whatever answers this URL decides what gets signed. Keep it to the
     # marketplace, over TLS.
@@ -64,15 +87,19 @@ x402_call() {
     # Both requests must carry the same body: the challenge is issued against a
     # validated request, and the retry has to be that same request plus a header.
     local -a body_args=()
-    if [ "${1:-}" = "--multipart" ]; then
-      shift
-      # Passed through verbatim. No Content-Type here — curl sets it, with the
-      # boundary, and overriding it breaks the upload.
-      body_args=("$@")
-    elif [ -n "${1:-}" ]; then
-      case "$1" in
-        @*) body_args=(-H "Content-Type: application/json" --data-binary "$1") ;;
-        *)  body_args=(-H "Content-Type: application/json" --data "$1") ;;
+    if [ -n "$upload" ]; then
+      [ -r "$upload" ] || { echo "--upload cannot read: $upload" >&2; return 2; }
+      body_args=(-F "file=@${upload}")
+      if [ -n "$metadata" ]; then
+        [ -r "$metadata" ] || { echo "--metadata cannot read: $metadata" >&2; return 2; }
+        body_args+=(-F "metadata=<${metadata}")
+      fi
+      # No Content-Type here — curl sets it, with the boundary, and overriding it
+      # breaks the upload.
+    elif [ -n "$body" ]; then
+      case "$body" in
+        @*) body_args=(-H "Content-Type: application/json" --data-binary "$body") ;;
+        *)  body_args=(-H "Content-Type: application/json" --data "$body") ;;
       esac
     fi
 
@@ -104,19 +131,34 @@ x402_call() {
     jq -r '.[] | "  price: \(.amount) raw on \(.network) -> \(.payTo)"' \
       "$work/accepts.json" >&2
 
-    # A zero-amount challenge is the identity handshake: it proves who you are and
-    # moves no money, so it needs no confirmation. Anything else spends USDC.
-    local amount
-    amount=$(jq -r 'first(.[].amount // .[].maxAmountRequired) // "0"' "$work/accepts.json")
-    if [ "$amount" != "0" ] && [ "$execute" -ne 1 ]; then
+    # Prices come from the reply, so they are checked before anything acts on
+    # them: each must be a plain non-negative integer of raw units. A float, a
+    # sign, or a null is a challenge this script cannot reason about.
+    local amounts='[.[] | .amount // .maxAmountRequired // "0" | tostring]'
+    if ! jq -e "$amounts | all(test(\"^[0-9]+$\"))" "$work/accepts.json" >/dev/null; then
+      echo "refusing: a requirement states a price this script cannot read:" >&2
+      jq -c "$amounts" "$work/accepts.json" >&2
+      return 1
+    fi
+
+    # Free means every requirement is free. Reading only the first one let a
+    # challenge that offered a free entry ahead of a paid one skip the
+    # confirmation below, and then handed CDP the whole array to choose from.
+    local paid=1
+    jq -e "$amounts | all(. == \"0\")" "$work/accepts.json" >/dev/null && paid=0
+
+    # A zero-amount challenge is the identity handshake: it proves who you are
+    # and moves no money. Anything else spends USDC.
+    if [ "$paid" -eq 1 ] && [ "$execute" -ne 1 ]; then
       echo >&2
-      echo "This request costs $amount raw units. Nothing has been paid." >&2
+      echo "This request costs money. Nothing has been paid." >&2
       echo "Re-run with --execute as the first argument to pay it." >&2
       return 3
     fi
 
-    if [ -z "$network" ] && [ "$amount" != "0" ] \
-       && [ "$(jq 'length' "$work/accepts.json")" -gt 1 ]; then
+    # Nothing is signed against a set of requirements. One is chosen, or the
+    # script stops and asks which.
+    if [ "$paid" -eq 1 ] && [ "$(jq 'length' "$work/accepts.json")" -ne 1 ]; then
       echo "the challenge offers several chains; pass --network to choose one" >&2
       jq -c '[.[].network]' "$work/accepts.json" >&2
       return 1

@@ -35,7 +35,7 @@
     {
       "name": "spawnxchange-selling",
       "description": "List AI-generated code artifacts for sale on SpawnXchange, with a local safety pre-check.",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "source": "./",
       "strict": false,
       "skills": [
@@ -48,7 +48,7 @@
     {
       "name": "spawnxchange-circle-wallet",
       "description": "Trade on SpawnXchange with a Circle Agent Wallet. Base and Polygon, mainnet and testnet.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./",
       "strict": false,
       "skills": [
@@ -61,7 +61,7 @@
     {
       "name": "spawnxchange-agentcash",
       "description": "Trade on SpawnXchange with an AgentCash wallet.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./",
       "strict": false,
       "skills": [
@@ -74,7 +74,7 @@
     {
       "name": "spawnxchange-awal",
       "description": "Trade on SpawnXchange with the Coinbase Agentic Wallet (awal).",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./",
       "strict": false,
       "skills": [
@@ -87,7 +87,7 @@
     {
       "name": "spawnxchange-cdp-cli",
       "description": "Trade on SpawnXchange with a CDP-managed wallet; the only path that can list a large archive.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "./",
       "strict": false,
       "skills": [
