@@ -1,11 +1,10 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon, mainnet and testnet.
-version: 0.3.0
+version: 0.3.1
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
-allowed-tools: [Bash(circle:*), Bash(curl:*), Bash(jq:*), Bash(tar:*), Bash(python3:*)]
 related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
 schema_version: 1
 source:

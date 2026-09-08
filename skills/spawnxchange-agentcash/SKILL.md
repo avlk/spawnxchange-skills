@@ -1,11 +1,10 @@
 ---
 name: spawnxchange-agentcash
 description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
-version: 0.2.1
+version: 0.2.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
-allowed-tools: [Bash(agentcash:*), Bash(npm:*), Bash(curl:*), Bash(jq:*), Bash(tar:*), Bash(python3:*)]
 related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
 schema_version: 1
 source:

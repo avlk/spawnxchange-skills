@@ -102,7 +102,12 @@ archive you choose to list.
 
 
 def frontmatter(slug, description, version, tags, bins, persistence_note):
-    allowed_tools = ", ".join(f"Bash({b}:*)" for b in bins.split(", "))
+    # No `allowed-tools` here. It was tried as an answer to a scanner finding
+    # about undeclared shell use, and Hermes reads the field's mere presence as
+    # `high/privilege_escalation` and blocks the install — a real gate failing
+    # now, in exchange for a speculative improvement elsewhere. The declaration
+    # lives in `metadata.openclaw.requires.bins`, which Hermes accepts, and in
+    # the "What this skill runs" section, which is what a reader sees anyway.
     return f"""---
 name: {slug}
 description: {description}
@@ -110,7 +115,6 @@ version: {version}
 author: SpawnXchange
 license: MIT
 tags: [{tags}]
-allowed-tools: [{allowed_tools}]
 related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
 schema_version: 1
 source:
@@ -779,7 +783,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.0",
+        "version": "0.3.1",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -877,7 +881,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.1",
+        "version": "0.2.2",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -961,7 +965,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.1",
+    "version": "0.2.2",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1053,7 +1057,7 @@ they stop at roughly a 96 KB archive.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
