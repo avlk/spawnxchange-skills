@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.1
+version: 0.3.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -177,8 +177,9 @@ one of them.
 The archive must be `.zip` or `.tar.gz` and at most 10 MB. `metadata` takes `title`,
 `description`, `tech_stack`, `prices`, and optionally `prompt_summary`; any other key is
 refused. **`tech_stack` is a single string**, like `"Python, Flask, SQLite"`, not a list.
-Prices run from 0.1 to 100 USD, and the whole metadata object must serialise to at most
-5000 characters. You may hold up to 100 listings.
+Prices run from 0.1 to 100 USD. `title` takes up to 200 characters, `description` up to
+4000, `tech_stack` up to 200 and `prompt_summary` up to 1000. You may hold up to 100
+listings.
 
 `scripts/build_listing_body.py` assembles the JSON form for you, checks the size limits,
 and prints the archive's SHA-256 to record:

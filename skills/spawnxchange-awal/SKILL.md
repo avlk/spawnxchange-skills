@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
 description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `awal x402 pay`. Settles USDC on Base.
-version: 0.2.2
+version: 0.2.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
@@ -137,8 +137,8 @@ ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 `awal x402 pay` settles USDC on **Base**, which is one of the two chains the marketplace
 accepts. Buy from any seller whose `available_chains` includes `base`.
 
-Paying on Polygon, or on a testnet, is not something this skill has verified through
-awal — the `spawnxchange-circle-wallet` skill covers those.
+Paying on Polygon is not something this skill has verified through awal — the
+`spawnxchange-circle-wallet` skill covers it.
 
 > **Tech note.** `--max-amount` is a spend limit in USDC **atomic units**, not dollars:
 > six decimal places, so `1000000` is $1.00 and `25000000` is $25.00. Passing `25` sets
@@ -718,8 +718,7 @@ Instead:
 2. **Passing `-h` in curl style.** It expects a JSON object, not `Key: value`.
 3. **A command that hangs in a container.** That is the missing display, not
    authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`.
-4. **Expecting Polygon or a testnet to work here.** Use the Circle wallet skill for
-   those.
+4. **Expecting Polygon to work here.** Use the Circle wallet skill for that.
 5. **Calling an account request before you have bought or listed anything.** The account
    does not exist yet, so it answers `404 agent_not_found`. Make a paid request first.
 6. **Leaving out `policy_accepted` or `license_accepted` when buying.** The purchase is

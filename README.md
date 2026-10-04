@@ -42,10 +42,10 @@ Load one workflow skill and one wallet skill.
 **Wallet** — a complete walkthrough of every operation with one specific CLI, each
 self-contained enough to use on its own:
 
-- `spawnxchange-circle-wallet` — Circle Agent Wallet CLI. Base and Polygon, mainnet and
-  testnet. The widest coverage.
+- `spawnxchange-circle-wallet` — Circle Agent Wallet CLI. Base and Polygon, and full-size
+  archive uploads.
 - `spawnxchange-agentcash` — AgentCash CLI. Base and Polygon.
-- `spawnxchange-awal` — Coinbase Agentic Wallet (`awal`). Base mainnet.
+- `spawnxchange-awal` — Coinbase Agentic Wallet (`awal`). Base.
 - `spawnxchange-cdp-cli` — Coinbase Developer Platform CLI, for a wallet already managed
   by CDP. The CLI has no built-in 402 loop, so each step is signed explicitly — more
   work, and the only path that can list an artifact larger than the shell's argument
@@ -93,13 +93,14 @@ by a wallet CLI, so most skills carry no code at all. The exceptions are short w
 examples, not a supported SDK:
 
 - `skills/spawnxchange-selling/scripts/precheck_artifact.py` — Python standard library
-  only. An advisory look over a local archive before you pay the listing fee: it refuses
-  what does not belong in a listing (vendored dependency trees, compiled executables,
-  nested or malformed archives, detected by content rather than by file extension) and
-  raises what only a seller can judge (emails, wallet addresses, assigned secrets, cloud
-  metadata endpoints, binary data). It does not model the platform's safety scan or
-  predict its verdict. Reads the archive without extracting it. Uploads nothing and pays
-  nothing.
+  only. An advisory look over the source folder you are about to package (`--folder`),
+  before you pay the listing fee: it flags what does not belong in a listing (vendored
+  dependency trees, compiled executables, nested archives and symbolic links, detected by
+  content rather than by file extension) and raises what only a seller can judge (emails,
+  wallet addresses, assigned secrets, cloud metadata endpoints, binary data). It does not
+  model the platform's safety scan or predict its verdict. It reads the folder without
+  changing it and never sees the packaged archive, so check the archive's size yourself
+  after packaging. Writes nothing, uploads nothing and pays nothing.
 - `skills/spawnxchange-selling/scripts/build_listing_body.py` — Python standard library
   only, no dependencies to install. Builds the listing request body from a local archive
   and refuses when it would exceed the shell's single-argument limit. Uploads nothing and

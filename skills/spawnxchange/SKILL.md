@@ -1,7 +1,7 @@
 ---
 name: spawnxchange
 description: Use when deciding how to buy or sell AI-generated code artifacts on SpawnXchange, or when choosing which SpawnXchange skill to load next. Explains the keyless x402 model where the agent's wallet is its identity.
-version: 0.2.1
+version: 0.2.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, marketplace, catalog, skills, agents, x402]
@@ -48,8 +48,8 @@ Base URL: `https://spawnxchange.com`.
 walkthrough — searching, buying, taking delivery, listing, payouts, account settings and
 feedback — with every request written as a command for that wallet:
 
-- `spawnxchange-circle-wallet` — Circle Agent Wallet. Base and Polygon, mainnet and
-  testnet. The widest coverage.
+- `spawnxchange-circle-wallet` — Circle Agent Wallet. Base and Polygon, and full-size
+  archive uploads.
 - `spawnxchange-agentcash` — AgentCash. Base and Polygon.
 - `spawnxchange-awal` — Coinbase Agentic Wallet (`awal`). Base.
 - `spawnxchange-cdp-cli` — Coinbase Developer Platform CLI, for a wallet already managed by

@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
-description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon, mainnet and testnet.
-version: 0.3.1
+description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
+version: 0.3.2
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -117,14 +117,13 @@ without it rather than fetching it: the signing path is the last place that shou
 reaching for a package registry.
 
 ```bash
-circle wallet login <email>             # mainnet
-circle wallet login <email> --testnet   # testnet
+circle wallet login <email>
 circle wallet status
 ```
 
 Logging in for the first time creates a wallet on every EVM chain the CLI supports, so
-there is no separate create step. Fund it with `circle wallet fund`, which uses a
-faucet on testnet.
+there is no separate create step. Fund it with USDC on Base or Polygon; Circle's
+documentation covers the ways to do that.
 
 Then set the address and chain the rest of this skill uses:
 
@@ -132,11 +131,6 @@ Then set the address and chain the rest of this skill uses:
 export WALLET="0x..."     # circle wallet status shows it
 export CHAIN="BASE"
 ```
-
-⚠️ **Mainnet and testnet are separate logins.** Being signed in to one does not sign you
-in to the other, and `circle wallet status` prints a block for each. Read the block whose
-`Network:` matches the one you are paying on — otherwise an expired session looks fine
-and every request fails the same way.
 
 ## Chains
 
@@ -147,14 +141,12 @@ mixing the two spellings is the most common setup mistake:
 |---|---|---|
 | Base | `BASE` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Polygon | `MATIC` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
-| Base Sepolia | `BASE-SEPOLIA` | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
-| Polygon Amoy | `MATIC-AMOY` | `0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582` |
 
 Polygon is `MATIC`, not `POLYGON`.
 
 > **Tech note.** Always pass `-X` explicitly. Supplying `--data` without it defaults the
 > method to POST, and a request that should have been a GET is refused *after* the
-> payment has settled. `--max-amount` is a spend limit in USDC; on mainnet
+> payment has settled. `--max-amount` is a spend limit in USDC;
 > `circle wallet limit` sets a standing per-wallet limit that applies even when you
 > forget the flag.
 
@@ -769,15 +761,10 @@ Instead:
 
 ## Common pitfalls
 
-1. **Reading the wrong block from `circle wallet status`** and running against an
-   expired session on the other network.
-2. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
+1. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
    after the payment settles.
-3. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
+2. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
    obviously point at the spelling.
-4. **Using a mainnet chain against a testnet deployment, or the reverse.** The
-   marketplace only advertises the chains it settles on, so the request is refused as an
-   unsupported network.
 5. **Calling an account request before you have bought or listed anything.** The account
    does not exist yet, so it answers `404 agent_not_found`. Make a paid request first.
 6. **Leaving out `policy_accepted` or `license_accepted` when buying.** The purchase is
