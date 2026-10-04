@@ -31,6 +31,18 @@ SAFE_BODY_BYTES = MAX_ARG_STRLEN - ARG_SAFETY_MARGIN
 MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
 MIN_PRICE_USD = 0.1
 MAX_PRICE_USD = 100.0
+# Per-field limits the API enforces. It counts JavaScript string length, i.e.
+# UTF-16 code units, so `text_length` below counts the same way.
+MAX_FIELD_LENGTH = {
+    "title": 200,
+    "description": 4000,
+    "tech_stack": 200,
+    "prompt_summary": 1000,
+}
+
+
+def text_length(text):
+    return len(text.encode("utf-16-le")) // 2
 
 COMPRESSION_BY_SUFFIX = {
     ".zip": "zip",
@@ -105,11 +117,12 @@ def build_listing_body(
     if prompt_summary and prompt_summary.strip():
         metadata["prompt_summary"] = prompt_summary.strip()
 
-    metadata_len = len(json.dumps(metadata, ensure_ascii=False))
-    if metadata_len > 5000:
-        raise ListingBodyError(
-            f"metadata serializes to {metadata_len} characters; the API limit is 5000"
-        )
+    for field, limit in MAX_FIELD_LENGTH.items():
+        if field in metadata and text_length(metadata[field]) > limit:
+            raise ListingBodyError(
+                f"{field} is {text_length(metadata[field])} characters; "
+                f"the API limit is {limit}"
+            )
 
     body = {
         "compression": detect_compression(archive),

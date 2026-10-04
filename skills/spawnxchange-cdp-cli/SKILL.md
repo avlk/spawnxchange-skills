@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.5.0
+version: 0.5.1
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -55,14 +55,14 @@ asking for, build the payment, sign it, send it. `scripts/x402-call.sh` does tha
 assembly, so the rest of this skill stays one command per operation.
 
 That extra step buys two things. Your key is never read by anything but CDP itself. And
-because the payment and the request travel separately, you can upload an archive of any
-size, which the other wallets cannot.
+because the payment and the request travel separately, you can upload an archive up to the
+full 10 MB, which AgentCash and awal cannot.
 
 **If you are free to choose a wallet, one of the others is less work.** The
 `spawnxchange-awal` skill covers Coinbase's own agent wallet, on the same platform and
-paying in one command; the `spawnxchange-circle-wallet` skill covers the wallet with the
-most chains. Use this skill when the wallet you must pay from is already managed by CDP,
-or when you need to list a large archive.
+paying in one command; the `spawnxchange-circle-wallet` skill covers Circle's wallet, which
+can also list large archives. Use this skill when the wallet you must pay from is already
+managed by CDP.
 
 CDP's own skill at `https://docs.cdp.coinbase.com/cdp-cli/skill.md` covers installation
 and wallet setup.
@@ -427,8 +427,9 @@ past the 10 MB limit:
 `tech_stack`, `prices` — not the wrapper `build_listing_body.py` produces. Flags go before
 the method, and the same two parts are sent on the unpaid request and the paid one.
 
-This is the thing the other wallets cannot do: their body options only take a string, so
-they stop at roughly a 96 KB archive.
+AgentCash and awal cannot do this: their body options only take a string, so they stop at
+roughly a 96 KB archive. The `spawnxchange-circle-wallet` skill's `list-artifact.sh` is the
+other route to a full-size upload.
 
 ### 3. Upload it
 

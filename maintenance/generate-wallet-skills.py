@@ -801,7 +801,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.1",
+        "version": "0.3.2",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -810,7 +810,7 @@ you and signed anyway.
             "listing, payouts, account settings and feedback. Every request is one "
             "`circle services pay` command, except an upload too large to pass as an "
             "argument, which a bundled script signs with `circle wallet sign typed-data` "
-            "instead. Covers Base and Polygon, mainnet and testnet."
+            "instead. Covers Base and Polygon."
         ),
         "tags": "spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc",
         "intro": r"""A command-line wallet from Circle that holds USDC and can pay for services on your
@@ -843,14 +843,13 @@ without it rather than fetching it: the signing path is the last place that shou
 reaching for a package registry.
 
 ```bash
-circle wallet login <email>             # mainnet
-circle wallet login <email> --testnet   # testnet
+circle wallet login <email>
 circle wallet status
 ```
 
 Logging in for the first time creates a wallet on every EVM chain the CLI supports, so
-there is no separate create step. Fund it with `circle wallet fund`, which uses a
-faucet on testnet.
+there is no separate create step. Fund it with USDC on Base or Polygon; Circle's
+documentation covers the ways to do that.
 
 Then set the address and chain the rest of this skill uses:
 
@@ -858,11 +857,6 @@ Then set the address and chain the rest of this skill uses:
 export WALLET="0x..."     # circle wallet status shows it
 export CHAIN="BASE"
 ```
-
-⚠️ **Mainnet and testnet are separate logins.** Being signed in to one does not sign you
-in to the other, and `circle wallet status` prints a block for each. Read the block whose
-`Network:` matches the one you are paying on — otherwise an expired session looks fine
-and every request fails the same way.
 
 ## Chains
 
@@ -873,25 +867,18 @@ mixing the two spellings is the most common setup mistake:
 |---|---|---|
 | Base | `BASE` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Polygon | `MATIC` | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
-| Base Sepolia | `BASE-SEPOLIA` | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
-| Polygon Amoy | `MATIC-AMOY` | `0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582` |
 
 Polygon is `MATIC`, not `POLYGON`.
 
 > **Tech note.** Always pass `-X` explicitly. Supplying `--data` without it defaults the
 > method to POST, and a request that should have been a GET is refused *after* the
-> payment has settled. `--max-amount` is a spend limit in USDC; on mainnet
+> payment has settled. `--max-amount` is a spend limit in USDC;
 > `circle wallet limit` sets a standing per-wallet limit that applies even when you
 > forget the flag.""",
-        "pitfalls": r"""1. **Reading the wrong block from `circle wallet status`** and running against an
-   expired session on the other network.
-2. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
+        "pitfalls": r"""1. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
    after the payment settles.
-3. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
-   obviously point at the spelling.
-4. **Using a mainnet chain against a testnet deployment, or the reverse.** The
-   marketplace only advertises the chains it settles on, so the request is refused as an
-   unsupported network.""",
+2. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
+   obviously point at the spelling.""",
     },
 
     "spawnxchange-agentcash": {
@@ -983,7 +970,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.2",
+    "version": "0.2.3",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1039,8 +1026,8 @@ ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 `awal x402 pay` settles USDC on **Base**, which is one of the two chains the marketplace
 accepts. Buy from any seller whose `available_chains` includes `base`.
 
-Paying on Polygon, or on a testnet, is not something this skill has verified through
-awal — the `spawnxchange-circle-wallet` skill covers those.
+Paying on Polygon is not something this skill has verified through awal — the
+`spawnxchange-circle-wallet` skill covers it.
 
 > **Tech note.** `--max-amount` is a spend limit in USDC **atomic units**, not dollars:
 > six decimal places, so `1000000` is $1.00 and `25000000` is $25.00. Passing `25` sets
@@ -1050,8 +1037,7 @@ awal — the `spawnxchange-circle-wallet` skill covers those.
 2. **Passing `-h` in curl style.** It expects a JSON object, not `Key: value`.
 3. **A command that hangs in a container.** That is the missing display, not
    authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`.
-4. **Expecting Polygon or a testnet to work here.** Use the Circle wallet skill for
-   those.""",
+4. **Expecting Polygon to work here.** Use the Circle wallet skill for that.""",
 }
 
 WALLETS["spawnxchange-cdp-cli"] = {
@@ -1070,13 +1056,14 @@ past the 10 MB limit:
 `tech_stack`, `prices` — not the wrapper `build_listing_body.py` produces. Flags go before
 the method, and the same two parts are sent on the unpaid request and the paid one.
 
-This is the thing the other wallets cannot do: their body options only take a string, so
-they stop at roughly a 96 KB archive.""",
+AgentCash and awal cannot do this: their body options only take a string, so they stop at
+roughly a 96 KB archive. The `spawnxchange-circle-wallet` skill's `list-artifact.sh` is the
+other route to a full-size upload.""",
     "call": cdp,
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1103,14 +1090,14 @@ asking for, build the payment, sign it, send it. `scripts/x402-call.sh` does tha
 assembly, so the rest of this skill stays one command per operation.
 
 That extra step buys two things. Your key is never read by anything but CDP itself. And
-because the payment and the request travel separately, you can upload an archive of any
-size, which the other wallets cannot.
+because the payment and the request travel separately, you can upload an archive up to the
+full 10 MB, which AgentCash and awal cannot.
 
 **If you are free to choose a wallet, one of the others is less work.** The
 `spawnxchange-awal` skill covers Coinbase's own agent wallet, on the same platform and
-paying in one command; the `spawnxchange-circle-wallet` skill covers the wallet with the
-most chains. Use this skill when the wallet you must pay from is already managed by CDP,
-or when you need to list a large archive.
+paying in one command; the `spawnxchange-circle-wallet` skill covers Circle's wallet, which
+can also list large archives. Use this skill when the wallet you must pay from is already
+managed by CDP.
 
 CDP's own skill at `https://docs.cdp.coinbase.com/cdp-cli/skill.md` covers installation
 and wallet setup.""",

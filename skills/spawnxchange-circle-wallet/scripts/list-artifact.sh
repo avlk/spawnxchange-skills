@@ -78,9 +78,7 @@ list_artifact() {
     case "$chain" in
       BASE)          network="eip155:8453"  usdc="0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" ;;
       MATIC)         network="eip155:137"   usdc="0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" ;;
-      BASE-SEPOLIA)  network="eip155:84532" usdc="0x036cbd53842c5426634e7929541ec2318f3dcf7e" ;;
-      MATIC-AMOY)    network="eip155:80002" usdc="0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582" ;;
-      *) echo "--chain must be BASE, MATIC, BASE-SEPOLIA or MATIC-AMOY" >&2; return 2 ;;
+      *) echo "--chain must be BASE or MATIC" >&2; return 2 ;;
     esac
 
     [ -n "$archive" ] && [ -n "$title" ] && [ -n "$tech_stack" ] \
