@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.5.2
+version: 0.5.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -737,6 +737,21 @@ Instead:
    be reconciled rather than repeated. The response does not carry an order id, so tell us
    using *Telling us something is wrong* above; include the transaction hash and leave a
    `contact` so we can reply. That request needs no account and costs nothing.
+
+## Security
+
+- **No private key is handled.** Signing happens inside CDP, which the operator installs and
+  configures; this skill installs and fetches nothing.
+- **`scripts/x402-call.sh` limits what it will sign** — see *What the wrapper refuses*: https
+  to spawnxchange.com hosts only, no redirects, no `curl` arguments from the caller, a spend
+  ceiling chosen beforehand on every paid call, one chosen chain, and an item-matching
+  `--confirm-delete` before a listing is removed.
+- **Free identity requests sign for zero.** SpawnXchange has no API key: the signer of an
+  x402 authorization is the account. A zero-value EIP-3009 authorization moves no money and
+  grants no allowance, so these run without `--execute`; the script still prints every
+  requirement before signing.
+- **Temporary signing files** live in a `mktemp -d` directory with mode 700 that is removed on
+  exit.
 
 ## Common pitfalls
 

@@ -22,7 +22,7 @@ Editing guide:
   - A fact true of one CLI belongs in that wallet's entry in WALLETS: its
     `prereq` block, its `pitfalls`, or its command builder.
   - A new wallet needs a command builder, a WALLETS entry, an entry in LIST_CMD,
-    a skills/<slug>/ directory, a marketplace.json entry and a clawscan note.
+    a skills/<slug>/ directory, a marketplace.json entry and a Security section.
 
 Version numbers live here too, and must match `.claude-plugin/marketplace.json`.
 """
@@ -804,7 +804,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.3",
+        "version": "0.3.4",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -878,6 +878,19 @@ Polygon is `MATIC`, not `POLYGON`.
 > payment has settled. `--max-amount` is a spend limit in USDC;
 > `circle wallet limit` sets a standing per-wallet limit that applies even when you
 > forget the flag.""",
+        "security": r"""- **No private key is handled.** Signing and custody stay inside the Circle CLI. This skill
+  installs nothing; `scripts/list-artifact.sh` stops if `circle` is missing rather than
+  fetching it.
+- **One script, for one job.** `scripts/list-artifact.sh` exists only to list an archive too
+  large for a command-line argument, signing with `circle wallet sign typed-data`. It talks
+  only to https on a spawnxchange.com host without following redirects, signs only for the
+  USDC contract of the chain you name, refuses a fee above `--max-fee-usdc` (0.05 by
+  default; the fee is 0.01), and keeps its temporary files in a `mktemp -d` directory with
+  mode 700 that is removed on exit. Without `--execute` it only reports the fee.
+- **Every paid call shows its price and carries a spend cap.** Purchases and the listing fee
+  are irreversible.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.""",
         "pitfalls": r"""1. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
    after the payment settles.
 2. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
@@ -889,7 +902,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.3",
+        "version": "0.2.4",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -952,6 +965,14 @@ export NETWORK="base"
 > failure rather than a limit you set. AgentCash also tries a non-payment authentication
 > first; the marketplace does not offer one, so it falls through to paying.
 > `--payment-protocol x402` skips that step.""",
+        "security": r"""- **No scripts.** Every request is a documented AgentCash CLI command.
+- **No private key is handled.** Signing and custody stay inside the CLI, which is installed
+  once at the pinned version named above and then called by name, so the code that signs a
+  payment cannot change without this skill changing.
+- **Every paid call shows its price and carries a spend cap.** Purchases and the listing fee
+  are irreversible.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.""",
         "pitfalls": r"""1. **Not setting `--payment-network`.** It defaults to Base; if you meant Polygon, say
    so, and check the seller accepts it.
 2. **Buying an item whose `available_chains` does not include your chain.** The seller
@@ -973,7 +994,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.4",
+    "version": "0.2.5",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1035,6 +1056,14 @@ Paying on Polygon is not something this skill has verified through awal — the
 > **Tech note.** `--max-amount` is a spend limit in USDC **atomic units**, not dollars:
 > six decimal places, so `1000000` is $1.00 and `25000000` is $25.00. Passing `25` sets
 > the limit to 25 millionths of a cent and nothing will go through.""",
+    "security": r"""- **No scripts.** Every request is a documented awal command.
+- **No private key is handled.** Signing and custody stay inside the CLI, which is installed
+  once at the pinned version named above and then called by name, so the code that signs a
+  payment cannot change without this skill changing.
+- **Every paid call shows its price and carries a spend cap.** Purchases and the listing fee
+  are irreversible.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.""",
     "pitfalls": r"""1. **Giving `--max-amount` in dollars.** It takes atomic units, and the mistake blocks
    every purchase rather than reporting a limit problem.
 2. **Passing `-h` in curl style.** It expects a JSON object, not `Key: value`.
@@ -1066,7 +1095,7 @@ other route to a full-size upload.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1217,6 +1246,18 @@ requirement — amount, network and recipient — before it signs one.
 ```bash
 export WALLET_ADDRESS="0x..."
 ```""",
+    "security": r"""- **No private key is handled.** Signing happens inside CDP, which the operator installs and
+  configures; this skill installs and fetches nothing.
+- **`scripts/x402-call.sh` limits what it will sign** — see *What the wrapper refuses*: https
+  to spawnxchange.com hosts only, no redirects, no `curl` arguments from the caller, a spend
+  ceiling chosen beforehand on every paid call, one chosen chain, and an item-matching
+  `--confirm-delete` before a listing is removed.
+- **Free identity requests sign for zero.** SpawnXchange has no API key: the signer of an
+  x402 authorization is the account. A zero-value EIP-3009 authorization moves no money and
+  grants no allowance, so these run without `--execute`; the script still prints every
+  requirement before signing.
+- **Temporary signing files** live in a `mktemp -d` directory with mode 700 that is removed on
+  exit.""",
     "pitfalls": r"""1. **Mixing two different saved replies** across the build, sign and send steps.
    Verification fails without saying why. Re-ask and use one reply throughout.
 2. **Re-using a reply for a second attempt.** Each is single-use and short-lived; ask
@@ -1414,6 +1455,7 @@ def render(slug, spec):
         ),
         TERMS_AND_LICENCE,
         PAYMENT_IN_DOUBT,
+        "\n## Security\n\n" + spec["security"] + "\n",
         "\n## Common pitfalls\n\n" + spec["pitfalls"] + SHARED_PITFALLS,
         FOOTER,
     ])

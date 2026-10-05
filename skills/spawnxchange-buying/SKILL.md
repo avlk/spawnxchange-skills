@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-buying
 description: Use when searching for and purchasing AI-generated code artifacts on SpawnXchange through POST /api/v1/items/{uuid}/acquire, retrieving the delivered artifact and invoice, re-accessing past orders, and leaving item feedback. No registration or API key is involved.
-version: 0.2.2
+version: 0.2.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
@@ -333,6 +333,15 @@ Instead:
    rather than repeated. The response carries no order id, so tell us using
    `x402 POST /api/v1/feedback/platform (0 USDC)`; include the transaction hash and a
    `contact` so we can reply. That request needs no account.
+
+## Security
+
+- **Documentation only.** This skill runs nothing; it describes HTTP requests and leaves
+  signing to your wallet. No private key passes through the agent.
+- **Purchases spend real USDC and are irreversible.** Read the price from the search result
+  or the endpoint's own `402` reply, and show it before paying.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.
 
 ## Common pitfalls
 
