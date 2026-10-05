@@ -16,6 +16,11 @@
 #     --network <caip2>    which chain to pay on, e.g. eip155:8453
 #     --upload <file>      send this file as the `file` part of a multipart
 #     --metadata <file>    with this JSON file as the `metadata` part
+#     --confirm-delete <item_id>
+#                          required for DELETE: names the listing being removed.
+#                          Removal is irreversible, so a DELETE is refused before
+#                          anything is sent unless the URL is exactly
+#                          /api/v1/items/<item_id> and this flag names that id.
 #
 # --upload is how a listing larger than the shell's argument limit is sent: the
 # bytes go as they are, where base64-in-JSON would add a third to every one of
@@ -41,7 +46,7 @@ x402_call() {
   (
     set -euo pipefail
 
-    local execute=0 network="" upload="" metadata="" max_amount=""
+    local execute=0 network="" upload="" metadata="" max_amount="" confirm_delete=""
     while [ $# -gt 0 ]; do
       case "$1" in
         --execute)        execute=1; shift ;;
@@ -49,6 +54,7 @@ x402_call() {
         --network)  network="$2"; shift 2 ;;
         --upload)   upload="$2"; shift 2 ;;
         --metadata) metadata="$2"; shift 2 ;;
+        --confirm-delete) confirm_delete="$2"; shift 2 ;;
         *) break ;;
       esac
     done
@@ -80,6 +86,28 @@ x402_call() {
     if ! [[ "$url" =~ ^https://([a-z0-9-]+\.)*spawnxchange\.com(/|$) ]]; then
       echo "refusing: the URL must be https:// on a spawnxchange.com host" >&2
       echo "got: $url" >&2
+      return 2
+    fi
+
+    # Removing a listing cannot be undone, so the operator's confirmation is
+    # checked here, by the script, not only asked for in prose: the flag must
+    # name the exact item the URL deletes. Refused before any request is sent.
+    local method_uc
+    method_uc=$(printf '%s' "$method" | tr '[:lower:]' '[:upper:]')
+    if [ "$method_uc" = "DELETE" ]; then
+      local delete_re='^https://([a-z0-9-]+\.)*spawnxchange\.com/api/v1/items/([0-9a-fA-F-]{36})$'
+      if ! [[ "$url" =~ $delete_re ]]; then
+        echo "refusing: DELETE is only for a listing, https://spawnxchange.com/api/v1/items/<item_id>" >&2
+        return 2
+      fi
+      local target="${BASH_REMATCH[2]}"
+      if [ -z "$confirm_delete" ] || [ "$confirm_delete" != "$target" ]; then
+        echo "refusing: removing listing $target is irreversible; confirm it with" >&2
+        echo "  --confirm-delete $target" >&2
+        return 2
+      fi
+    elif [ -n "$confirm_delete" ]; then
+      echo "--confirm-delete only applies to DELETE" >&2
       return 2
     fi
 
