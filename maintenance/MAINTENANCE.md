@@ -71,7 +71,7 @@ Where a change belongs:
   `pitfalls`, its command builder), or `LIST_CMD`.
 - A **new** wallet → a command builder, a `WALLETS` entry with its `bins`, a `LIST_CMD`
   entry, a `skills/<slug>/` directory, a `.claude-plugin/marketplace.json` entry in
-  `plugins`, a `clawscan-notes.json` note and a `maintenance/clawhub-taxonomy.json` entry.
+  `plugins`, a `## Security` section in its SKILL.md and a `maintenance/clawhub-taxonomy.json` entry.
 
 To **retire** a skill: replace its body with a redirect, move it out of `plugins` and into
 `renames` (mapped to its replacement, or to `null` if there isn't one), and leave the

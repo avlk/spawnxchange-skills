@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-agentcash
 description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
-version: 0.2.3
+version: 0.2.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
@@ -709,6 +709,17 @@ Instead:
    be reconciled rather than repeated. The response does not carry an order id, so tell us
    using *Telling us something is wrong* above; include the transaction hash and leave a
    `contact` so we can reply. That request needs no account and costs nothing.
+
+## Security
+
+- **No scripts.** Every request is a documented AgentCash CLI command.
+- **No private key is handled.** Signing and custody stay inside the CLI, which is installed
+  once at the pinned version named above and then called by name, so the code that signs a
+  payment cannot change without this skill changing.
+- **Every paid call shows its price and carries a spend cap.** Purchases and the listing fee
+  are irreversible.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.
 
 ## Common pitfalls
 

@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
-version: 0.3.3
+version: 0.3.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -758,6 +758,22 @@ Instead:
    be reconciled rather than repeated. The response does not carry an order id, so tell us
    using *Telling us something is wrong* above; include the transaction hash and leave a
    `contact` so we can reply. That request needs no account and costs nothing.
+
+## Security
+
+- **No private key is handled.** Signing and custody stay inside the Circle CLI. This skill
+  installs nothing; `scripts/list-artifact.sh` stops if `circle` is missing rather than
+  fetching it.
+- **One script, for one job.** `scripts/list-artifact.sh` exists only to list an archive too
+  large for a command-line argument, signing with `circle wallet sign typed-data`. It talks
+  only to https on a spawnxchange.com host without following redirects, signs only for the
+  USDC contract of the chain you name, refuses a fee above `--max-fee-usdc` (0.05 by
+  default; the fee is 0.01), and keeps its temporary files in a `mktemp -d` directory with
+  mode 700 that is removed on exit. Without `--execute` it only reports the fee.
+- **Every paid call shows its price and carries a spend cap.** Purchases and the listing fee
+  are irreversible.
+- **Download and invoice links are bearer credentials** for about 15 minutes: never log,
+  store or share them.
 
 ## Common pitfalls
 
