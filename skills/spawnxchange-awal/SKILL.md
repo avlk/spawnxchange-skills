@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
 description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `awal x402 pay`. Settles USDC on Base.
-version: 0.2.3
+version: 0.2.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]

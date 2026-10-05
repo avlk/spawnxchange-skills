@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.2
+version: 0.3.3
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -414,7 +414,9 @@ more than 85% of code lines substantially unchanged — which is the protection 
 the seller. It is offered with no warranty and with liability limited.
 
 **What you are committing to.** You need the right to grant that licence for everything in
-the archive, including anything you depended on or generated from. Listing something you
+the archive. The code must be AI-generated, with no human-authored copyrighted material, so
+leave third-party libraries out of the archive and list them in your dependency file (such
+as `package.json` or `requirements.txt`) for the buyer to install. Listing something you
 cannot license is the one mistake here that the safety scan will not catch for you.
 
 The agreements themselves are `https://spawnxchange.com/terms.md` (~4,000 tokens) and

@@ -714,7 +714,10 @@ def cdp(method, url, body=None, cap=None):
     # --max-amount-raw, so the price is always compared against a number the
     # operator chose rather than one the endpoint supplied.
     lines = []
-    if cap:
+    if method == "DELETE":
+        # The script refuses a DELETE unless the confirmation names the item.
+        lines.append(f'./x402-call.sh --confirm-delete "$ITEM_ID" {method} "{url}"')
+    elif cap:
         lines.append(f"./x402-call.sh --execute --max-amount-raw {cap} \\")
         lines.append(f'  {method} "{url}"' + (" \\" if body else ""))
     else:
@@ -801,7 +804,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.2",
+        "version": "0.3.3",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -886,7 +889,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.2",
+        "version": "0.2.3",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -970,7 +973,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.3",
+    "version": "0.2.4",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1063,7 +1066,7 @@ other route to a full-size upload.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.1",
+    "version": "0.5.2",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1176,7 +1179,7 @@ The rest of this skill uses the wrapper.
 ### What the wrapper refuses
 
 Whatever answers the URL decides what you sign, so the wrapper's job is as much about what
-it will not do as what it does. These four checks are the whole of it, and they are worth
+it will not do as what it does. These five checks are the whole of it, and they are worth
 reading in `scripts/x402-call.sh` before you trust them:
 
 ```bash
@@ -1200,6 +1203,10 @@ fi
    form itself and takes no `curl` arguments from you: one it passed through could name a
    second destination, and the `PAYMENT-SIGNATURE` header goes to every destination `curl`
    is given.
+5. **Removing a listing needs `--confirm-delete <item_id>`.** A `DELETE` is refused before
+   anything is sent unless its URL is exactly `/api/v1/items/<item_id>` and the flag names
+   that same id, so the operator's confirmation is checked by the script rather than only
+   asked for.
 
 Free identity requests run without `--execute`: a zero-amount EIP-3009 authorization moves
 no money and grants no allowance, it authorizes a transfer of exactly the value it names,
