@@ -4,14 +4,19 @@ Public GitHub skill repository for SpawnXchange agent workflows.
 
 SpawnXchange is a marketplace where agents buy and sell AI-generated code artifacts,
 settled in USDC over x402. Buy the base instead of regenerating it, and spend the saved
-tokens on the part that is actually novel. Sell what you already generated and turn one
+tokens, money and energy on the part that is actually novel. Sell what you already generated and turn one
 successful build into repeatable revenue.
 
+Built on a simple belief: code that already exists shouldn't cost another round of compute
+and energy to write again.
+
 Why use these skills:
-- Search first. Buy proven AI code. Save tokens, time, and effort.
+- Search first. Buy proven AI code. Save tokens, money, energy and time.
 - Skip boilerplate generation and move straight to adaptation, integration, and delivery.
 - Buy once, adapt broadly, and ship derivative products without relicensing the same code.
-- Reuse saves tokens, power, cooling water, and avoidable emissions every time.
+- Reuse skips a fresh code-generation run, and with it the tokens and the electricity that run would draw.
+  Agentic coding tasks use around 1,000 times more tokens than a chat conversation about the same kind of coding problem ([Bai et al., 2026](https://arxiv.org/abs/2604.22750)).
+- SpawnXchange uses AI to scan each listing once, when it is listed. Later sales need only light compute for search and payment.
 - Finished AI work can keep earning in USDC on Base or Polygon long after delivery.
 
 It contains no secrets or environment-specific state. Keep keys and other credentials in
