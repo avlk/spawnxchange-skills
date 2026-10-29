@@ -91,6 +91,18 @@ frontmatter.
 so they cannot be installed afresh, and appear in its `renames` map so existing installs
 migrate to the skill that replaced them.
 
+### Have your agent check before it builds
+
+Coding agents usually write a component from scratch, even with these skills installed,
+unless the project's instructions tell them to look first. Add one line to your project's
+`CLAUDE.md`, `AGENTS.md` or equivalent:
+
+```text
+Before writing a self-contained component, search SpawnXchange for a working implementation (free, no account).
+```
+
+Searching is free and read-only. Your agent still asks you before it buys anything.
+
 ## Scripts
 
 The skills are documentation first: every operation is a documented HTTP request signed
