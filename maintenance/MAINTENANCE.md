@@ -134,3 +134,22 @@ Two traps, both of which have bitten this repository:
 Categories come from ClawHub's fixed list, at most three; topics are free-form, at most
 five, 48 characters each. `scripts/check_skill_versions.py` in the publisher fails on a
 missing skill or an out-of-range value.
+
+## The buy-button script
+
+`skills/spawnxchange-selling/scripts/buy_snippet.py` prints the "Buy with your agent" block
+(see its `references/buy-button.md`). Rules for changing it:
+
+- Every output is generated from the `WAYS` table; add a method there, not in a renderer.
+- The text speaks to the person reading the page. The one sentence meant for an agent is
+  what the person says to it, and it carries the consent step (show the price and terms,
+  ask before paying). Scanners read an imperative aimed at an agent as prompt injection.
+- Say nothing the public skills do not: no fee wording beyond the Terms link.
+- Seller text (the title) is escaped for markdown and HTML.
+- `npx` pins in the script mirror `PINS` in the generator; `maintenance/lint.sh` checks the
+  match and runs a malformed-input self-check against `summarize()` and
+  `parse_chooser_url()`.
+- Poncho: `https://tryponcho.com/?p=<prompt>` opens with the prompt even when logged out;
+  `/m/spawnxchange.com?p=` drops it for logged-out visitors.
+- Production still lacks a hosted chooser page per item (for example
+  `https://spawnxchange.com/buy/<ID>`); once it exists, make it the default badge target.

@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-buying
 description: Use when searching for and purchasing AI-generated code artifacts on SpawnXchange through POST /api/v1/items/{uuid}/acquire, retrieving the delivered artifact and invoice, re-accessing past orders, and leaving item feedback. No registration or API key is involved.
-version: 0.2.3
+version: 0.2.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
@@ -137,6 +137,11 @@ Returns one item as the same object a search gives you, without the surrounding 
 without `similarity`, which only means something in a ranked result. Use it to check a
 price or a description when you already have the id. Anything not currently listed answers
 `404`.
+
+If you are given an item id — "buy item `<id>`", say, from a README badge — skip the
+search and call that request. Tell the operator the title, price and chains it returns,
+point them to the licence and terms (*Terms and licence*, at the end of this skill), and
+buy only after they confirm. A `404` means the item is not listed.
 
 ## Buying an item
 

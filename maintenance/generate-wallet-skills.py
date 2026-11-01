@@ -238,6 +238,12 @@ To look at one item in detail:
 curl -sS "$SX/api/v1/items/$ITEM"
 ```
 
+**If you are given an item id** — "buy item `<id>`", say, from a README badge — skip the
+search and look the item up with the request above. Tell the operator its title, its price
+(`metadata.prices.USDC`) and the chains it accepts, and point them to the licence and terms
+(*Terms and licence*, near the end of this skill). Buy only after they confirm, and use that
+price for the spend limit below. A `404` means the item is not listed.
+
 `$SX/api/v1/skills` returns the full machine-readable list of every endpoint, if you need
 something this skill does not cover.
 """
@@ -428,6 +434,18 @@ still being scanned and it will look as though the upload failed.
 
 If it comes back `rejected`, `reason` says roughly why: `safety_checks_failed`,
 `insufficient_complexity`, `duplicate_content`, or `processing_error`.
+
+Once it is `active`, offer the seller a "Buy with your agent" block for their README or
+website, so other people's agents can buy it directly. The script that makes it,
+`buy_snippet.py`, ships in the `spawnxchange-selling` skill, not in this one: install that
+skill if you do not have it, and run the script from its `scripts/` folder. It makes one
+public read, prints the block and pays nothing, and it refuses an item that is not yet
+active:
+
+```bash
+python3 buy_snippet.py --item "$ITEM_ID"                  # markdown
+python3 buy_snippet.py --item "$ITEM_ID" --format html    # for a web page
+```
 
 Once it is active, *Checking on your sales* below shows what has sold and what you are
 owed.
@@ -804,7 +822,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.4",
+        "version": "0.3.5",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -902,7 +920,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.4",
+        "version": "0.2.5",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -994,7 +1012,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.5",
+    "version": "0.2.6",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1095,7 +1113,7 @@ other route to a full-size upload.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.3",
+    "version": "0.5.4",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.

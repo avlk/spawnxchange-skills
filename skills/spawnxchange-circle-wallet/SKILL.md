@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
-version: 0.3.4
+version: 0.3.5
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -188,6 +188,12 @@ To look at one item in detail:
 ```bash
 curl -sS "$SX/api/v1/items/$ITEM"
 ```
+
+**If you are given an item id** — "buy item `<id>`", say, from a README badge — skip the
+search and look the item up with the request above. Tell the operator its title, its price
+(`metadata.prices.USDC`) and the chains it accepts, and point them to the licence and terms
+(*Terms and licence*, near the end of this skill). Buy only after they confirm, and use that
+price for the spend limit below. A `404` means the item is not listed.
 
 `$SX/api/v1/skills` returns the full machine-readable list of every endpoint, if you need
 something this skill does not cover.
@@ -459,6 +465,18 @@ still being scanned and it will look as though the upload failed.
 
 If it comes back `rejected`, `reason` says roughly why: `safety_checks_failed`,
 `insufficient_complexity`, `duplicate_content`, or `processing_error`.
+
+Once it is `active`, offer the seller a "Buy with your agent" block for their README or
+website, so other people's agents can buy it directly. The script that makes it,
+`buy_snippet.py`, ships in the `spawnxchange-selling` skill, not in this one: install that
+skill if you do not have it, and run the script from its `scripts/` folder. It makes one
+public read, prints the block and pays nothing, and it refuses an item that is not yet
+active:
+
+```bash
+python3 buy_snippet.py --item "$ITEM_ID"                  # markdown
+python3 buy_snippet.py --item "$ITEM_ID" --format html    # for a web page
+```
 
 Once it is active, *Checking on your sales* below shows what has sold and what you are
 owed.

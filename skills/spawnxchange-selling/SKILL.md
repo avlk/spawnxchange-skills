@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.4
+version: 0.4.0
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -241,6 +241,18 @@ still being scanned and it will look as though the upload failed.
 If it comes back `rejected`, `reason` says roughly why: `safety_checks_failed`,
 `insufficient_complexity`, `duplicate_content`, or `processing_error`.
 
+Once it is `active`, offer the seller a "Buy with your agent" block for their README or
+website, so other people's agents can buy it directly:
+
+```bash
+python3 scripts/buy_snippet.py --item "<item_id>"                  # markdown
+python3 scripts/buy_snippet.py --item "<item_id>" --format html    # for a web page
+```
+
+It makes one public read, prints the block and pays nothing; it refuses an item that is
+not yet active. Paste the output where the seller wants it. Details:
+`references/buy-button.md`.
+
 ## 5. What has sold, and what you are owed
 
 `x402 GET /api/v1/seller/stats (0 USDC)`
@@ -457,8 +469,10 @@ we can reply.
 
 ## Security
 
-- **Two helper scripts, Python standard library only.** No network access, no credential or
-  environment reads; neither uploads nor pays anything.
+- **Three helper scripts, Python standard library only.** No credential or environment
+  reads; none uploads or pays anything. Two have no network access at all.
+  `buy_snippet.py` makes one public, unauthenticated read of an item on
+  `https://spawnxchange.com` and prints to stdout.
 - **`precheck_artifact.py` reads a folder, never an archive**, so nothing is decompressed or
   parsed. It never follows a symbolic link, reads only a capped prefix of each file, and
   writes nothing. Anything resembling a secret is reported as a file and line number, never

@@ -61,6 +61,35 @@ self-contained enough to use on its own:
 - `spawnxchange-registration` — registration no longer exists.
 - `spawnxchange-direct-buying` — merged into `spawnxchange-buying`.
 
+## Sell with a buy button
+
+Once a listing has passed the safety scan, `skills/spawnxchange-selling/scripts/buy_snippet.py`
+prints a "Buy with your agent" button for your README or website, so other people's agents
+can buy it directly:
+
+```bash
+python3 skills/spawnxchange-selling/scripts/buy_snippet.py --item 0ad6e69a-af04-428e-83fc-6a6125e26da7
+```
+
+That is a live listing. The README output is a large badge, a facts line and a collapsible
+"Ways to buy" with one copyable line per method:
+
+[![Buy with your agent · 1 USDC](https://img.shields.io/badge/Buy%20with%20your%20agent%20%C2%B7%201%20USDC-0052FF?style=for-the-badge)](https://spawnxchange.com/c/buy-badge)
+
+**Grocery Price Comparator** · 1 USDC · Base, Polygon · Safety-scanned before listing · Buying accepts the [Licence](https://spawnxchange.com/license) and [Terms](https://spawnxchange.com/terms)
+
+- `--format html` gives a website embed: the same button, opening a chooser with one tab per
+  method (any skills-capable agent, AgentCash, Poncho, awal, Circle) and a Copy button.
+  Inline CSS and script, no external requests.
+- `--format page` gives that chooser as a standalone page. Host it, and `--chooser-url`
+  (README output only) points the badge at it. Without it the badge links to the
+  SpawnXchange site.
+- The "any skills-capable agent" option is one line to paste into your agent: it installs
+  the buying skill and asks the agent to show you the price and terms and to ask you before
+  paying. awal is offered only for items sold on Base.
+
+The script reads the public item record and prints to stdout; it pays and writes nothing.
+
 ## Repository layout
 
 - `skills/spawnxchange/SKILL.md` — catalog skill, and the place to start
@@ -118,6 +147,9 @@ examples, not a supported SDK:
   model the platform's safety scan or predict its verdict. It reads the folder without
   changing it and never sees the packaged archive, so check the archive's size yourself
   after packaging. Writes nothing, uploads nothing and pays nothing.
+- `skills/spawnxchange-selling/scripts/buy_snippet.py` — Python standard library only.
+  Prints a "Buy with your agent" button and chooser for a live listing (markdown, HTML
+  embed or standalone page), from one public read of the item. Pays nothing, signs nothing and writes nothing.
 - `skills/spawnxchange-selling/scripts/build_listing_body.py` — Python standard library
   only, no dependencies to install. Builds the listing request body from a local archive
   and refuses when it would exceed the shell's single-argument limit. Uploads nothing and
