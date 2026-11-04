@@ -422,6 +422,10 @@ ITEM_ID="<item_id from the 202 response>"
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
 `active` it is listed and buyers can find it.
 
+It also gets a public page, `https://spawnxchange.com/items/<item_id>`, showing what it is
+and every way to buy it. Put that link in your README or on your website so that people and
+their agents can buy it from there.
+
 ⚠️ Use this seller route, not the public `GET /api/v1/items/{{uuid}}/status`. The public
 one only reports items that are already active, so it returns `404` for a listing that is
 still being scanned and it will look as though the upload failed.
@@ -804,7 +808,7 @@ you and signed anyway.
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.4",
+        "version": "0.3.5",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -902,7 +906,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.4",
+        "version": "0.2.5",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -994,7 +998,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.5",
+    "version": "0.2.6",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1095,7 +1099,7 @@ other route to a full-size upload.""",
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.3",
+    "version": "0.5.4",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.

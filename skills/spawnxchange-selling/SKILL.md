@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.4
+version: 0.3.5
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -233,6 +233,10 @@ New listings are scanned before they appear in search.
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is `active`
 it is listed and buyers can find it.
+
+It also gets a public page, `https://spawnxchange.com/items/<item_id>`, showing what it is
+and every way to buy it. Put that link in your README or on your website so that people and
+their agents can buy it from there.
 
 ⚠️ Use this seller request, not `public GET /api/v1/items/{item_id}/status`. The public
 one only reports items that are already active, so it returns `404` for a listing that is

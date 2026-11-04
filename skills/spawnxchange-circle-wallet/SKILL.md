@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
-version: 0.3.4
+version: 0.3.5
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -452,6 +452,10 @@ circle services pay "$SX/api/v1/seller/items/$ITEM_ID/status" \
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
 `active` it is listed and buyers can find it.
+
+It also gets a public page, `https://spawnxchange.com/items/<item_id>`, showing what it is
+and every way to buy it. Put that link in your README or on your website so that people and
+their agents can buy it from there.
 
 ⚠️ Use this seller route, not the public `GET /api/v1/items/{uuid}/status`. The public
 one only reports items that are already active, so it returns `404` for a listing that is
