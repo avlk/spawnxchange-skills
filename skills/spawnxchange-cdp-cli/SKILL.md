@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.5.3
+version: 0.5.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -470,6 +470,10 @@ ITEM_ID="<item_id from the 202 response>"
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
 `active` it is listed and buyers can find it.
+
+It also gets a public page, `https://spawnxchange.com/items/<item_id>`, showing what it is
+and every way to buy it. Put that link in your README or on your website so that people and
+their agents can buy it from there.
 
 ⚠️ Use this seller route, not the public `GET /api/v1/items/{uuid}/status`. The public
 one only reports items that are already active, so it returns `404` for a listing that is

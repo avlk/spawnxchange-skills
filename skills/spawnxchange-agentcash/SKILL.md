@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-agentcash
 description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
-version: 0.2.4
+version: 0.2.5
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
@@ -412,6 +412,10 @@ agentcash fetch "$SX/api/v1/seller/items/$ITEM_ID/status" \
 
 The status goes `pending_scan` → `scanning` → `active`, or `rejected`. Once it is
 `active` it is listed and buyers can find it.
+
+It also gets a public page, `https://spawnxchange.com/items/<item_id>`, showing what it is
+and every way to buy it. Put that link in your README or on your website so that people and
+their agents can buy it from there.
 
 ⚠️ Use this seller route, not the public `GET /api/v1/items/{uuid}/status`. The public
 one only reports items that are already active, so it returns `404` for a listing that is
