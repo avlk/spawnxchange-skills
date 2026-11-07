@@ -45,6 +45,29 @@ run_lint_checks() {
     fi
     rm -rf "$probe"
 
+    echo "Checking the precheck reports author and copyright lines..."
+    probe=$(mktemp -d)
+    printf '"""Ledger.\n\nCopyright (c) 2026 SomeHandle.\n"""\n' > "$probe/a.py"
+    printf '__author__ = "x"\n' > "$probe/b.py"
+    printf '/**\n * @author someone\n */\n' > "$probe/c.js"
+    printf '# Tool\n\n\xc2\xa9 Someone\n' > "$probe/README.md"
+    out=$(python3 skills/spawnxchange-selling/scripts/precheck_artifact.py --folder "$probe" 2>&1 || true)
+    if ! printf '%s\n' "$out" | grep -q 'an author or copyright line (4)'; then
+      echo "ERROR: precheck_artifact.py missed an author or copyright line:" >&2
+      printf '%s\n' "$out" >&2
+      fail=1
+    fi
+    rm -rf "$probe"
+    probe=$(mktemp -d)
+    printf 'def f(c):\n    return g(c) + 2026\n\nrows.sort(key=lambda r: r.date)  # sorted by date\nauthors = []\n' \
+      > "$probe/a.py"
+    if python3 skills/spawnxchange-selling/scripts/precheck_artifact.py --folder "$probe" \
+         2>&1 | grep -q 'author or copyright'; then
+      echo "ERROR: precheck_artifact.py reported an author line in ordinary code." >&2
+      fail=1
+    fi
+    rm -rf "$probe"
+
     echo "Checking generated wallet skills are in sync with their template..."
     if ! python3 maintenance/generate-wallet-skills.py; then
       echo "ERROR: wallet SKILL.md files differ from maintenance/generate-wallet-skills.py." >&2

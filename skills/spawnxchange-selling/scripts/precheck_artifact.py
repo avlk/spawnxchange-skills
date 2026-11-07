@@ -146,6 +146,12 @@ LOOK_PATTERNS = (
         r"""credential)[A-Z0-9_.-]*\s*[:=]\s*"""
         r"""(?:["'][A-Za-z0-9_.\-/+=:]{12,}["']|[A-Za-z0-9_.\-/+=]{12,}\s*$)""",
         re.MULTILINE)),
+    # A line naming who wrote or owns the code. Buyers get it under the
+    # marketplace licence, so a holder line in the files says otherwise. The
+    # year is required after "(c)" so `f(c)` in code stays quiet.
+    ("an author or copyright line", re.compile(
+        r"\bcopyright\b|\u00a9|\(c\)\s*\d{4}|^\W*@?author\b|__author__\s*=",
+        re.IGNORECASE | re.MULTILINE)),
     ("an email address", re.compile(
         r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
     ("a blockchain address", re.compile(

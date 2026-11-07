@@ -311,6 +311,15 @@ without adding anything a buyer wants.
 Your listing must also be code you have the right to sell. *Terms and licence*, near the
 end of this skill, says what you are granting buyers and what you are committing to.
 
+**Keep the files free of branding and licensing.**
+
+- **No branding or contact details:** no author or brand names, websites, social links or
+  contact addresses in the code, comments or README.
+- **No copyright or licence:** no copyright lines, licence headers or `LICENSE` file. Every
+  buyer gets the code under the SpawnXchange licence, so the archive needs none of its
+  own. That includes code you have also published elsewhere: selling it here is fine, but
+  leave that copy's copyright notice and licence out.
+
 **Work from a copy, not from your project.** Copy in only what the buyer is meant to get,
 look through it yourself, then check it, package it and publish:
 
@@ -338,8 +347,8 @@ which is why the `ls -l` above is part of the sequence.
 (`node_modules/`, `.venv/`, `__pycache__/`), a compiled executable, a nested archive, or a
 symbolic link. Files are classified by content, not by extension.
 
-**LOOK** is something only you can judge — an email address, a wallet address, an assigned
-secret, a cloud metadata endpoint, a database or other binary file, or a text file far
+**LOOK** is something only you can judge — an author or copyright line, an email address,
+a wallet address, an assigned secret, a cloud metadata endpoint, a database or other binary file, or a text file far
 larger than source files run. For each one you are deciding between three things: it is a
 fair part of what you are selling, it is a leak you want to remove, or it is something that
 should not be published at all. The script does not guess which; telling a test placeholder
@@ -431,7 +440,11 @@ one only reports items that are already active, so it returns `404` for a listin
 still being scanned and it will look as though the upload failed.
 
 If it comes back `rejected`, `reason` says roughly why: `safety_checks_failed`,
-`insufficient_complexity`, `duplicate_content`, or `processing_error`.
+`insufficient_complexity`, `duplicate_content`, or `processing_error`. For
+`safety_checks_failed`, `detail` names what to fix — `attribution`, `contact_info`,
+`payment_link`, `binary_file`, `unsafe_archive`, `credential_endpoint` or
+`content_review` — and `hint` says how. Fix the folder, package it again and list the new
+archive; the rejected bytes themselves cannot be listed again.
 
 Once it is active, *Checking on your sales* below shows what has sold and what you are
 owed.
