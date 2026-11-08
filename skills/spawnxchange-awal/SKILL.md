@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
 description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `awal x402 pay`. Settles USDC on Base.
-version: 0.2.6
+version: 0.2.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
@@ -297,10 +297,13 @@ end of this skill, says what you are granting buyers and what you are committing
 
 - **No branding or contact details:** no author or brand names, websites, social links or
   contact addresses in the code, comments or README.
-- **No copyright or licence:** no copyright lines, licence headers or `LICENSE` file. Every
-  buyer gets the code under the SpawnXchange licence, so the archive needs none of its
-  own. That includes code you have also published elsewhere: selling it here is fine, but
-  leave that copy's copyright notice and licence out.
+- **No notice of your own:** buyers get the code under the SpawnXchange licence, so leave
+  your own copyright lines, licence headers and `LICENSE` file out of the copy you sell.
+  Code you wrote and also published elsewhere can be sold here; that other copy keeps its
+  licence.
+- **Never remove someone else's notice.** A copyright line or licence naming anyone but you
+  means that file is not yours to sell. Leave the file out of the archive, and list a
+  library as a dependency instead.
 
 **Work from a copy, not from your project.** Copy in only what the buyer is meant to get,
 look through it yourself, then check it, package it and publish:

@@ -163,6 +163,10 @@ LOOK_PATTERNS = (
 )
 
 # Files whose whole purpose is to hold configuration you did not mean to ship.
+# Matched against the relative paths inside the folder being checked, and only
+# so the seller is told to leave them out of the archive. A match is reported
+# by path; the file is not opened for it, and no location outside the folder
+# is ever looked at.
 SENSITIVE_NAMES = re.compile(
     r"(?:^|/)(?:\.env(?:\..+)?|\.npmrc|\.pypirc|\.netrc|id_rsa|id_ed25519|"
     r"\.aws/credentials|credentials\.json|service-account.*\.json)$",
@@ -342,8 +346,24 @@ def _read_folder(root):
 
             try:
                 size = item.stat().st_size
+            except OSError as error:
+                problems.append(f"a file could not be read: {relative} ({error})")
+                continue
+
+            # A file read short of its sample would pass every check unexamined.
+            # Stop and say so rather than report a clean result for it.
+            want = min(SCAN_BYTES_PER_ENTRY, size)
+            if budget.take(want) < want:
+                problems.append(
+                    f"the check stopped after examining {budget.scanned} bytes; "
+                    f"{relative} and any files after it were not examined. That is "
+                    f"far more than a source listing normally contains — check that "
+                    f"this is the directory you meant.")
+                return problems, entries, total
+
+            try:
                 with item.open("rb") as handle:
-                    data = handle.read(budget.take(SCAN_BYTES_PER_ENTRY))
+                    data = handle.read(want)
             except OSError as error:
                 problems.append(f"a file could not be read: {relative} ({error})")
                 continue

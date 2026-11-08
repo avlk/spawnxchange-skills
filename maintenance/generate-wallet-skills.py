@@ -112,13 +112,20 @@ archive you choose to list.
 """
 
 
-def frontmatter(slug, description, version, tags, bins, persistence_note):
+def frontmatter(slug, description, version, tags, bins, persistence_note, permissions=None):
     # No `allowed-tools` here. It was tried as an answer to a scanner finding
     # about undeclared shell use, and Hermes reads the field's mere presence as
     # `high/privilege_escalation` and blocks the install — a real gate failing
     # now, in exchange for a speculative improvement elsewhere. The declaration
     # lives in `metadata.openclaw.requires.bins`, which Hermes accepts, and in
     # the "What this skill runs" section, which is what a reader sees anyway.
+    #
+    # `permissions` is a different field: a plain list of capability words that
+    # SkillSpector (one of ClawHub's scanners) reads as the skill's tool scope.
+    # No agent runtime acts on it, so it grants nothing. It must name exactly
+    # what the bundled scripts do: a missing capability is a High finding (LP1),
+    # an extra one a Low (LP4). Wallets without a script declare none.
+    scope = f"permissions: [{', '.join(permissions)}]\n" if permissions else ""
     return f"""---
 name: {slug}
 description: {description}
@@ -138,7 +145,7 @@ persistence:
   mode: local-state-required
   note: {persistence_note}
 maintainers: [avlk]
-metadata:
+{scope}metadata:
   hermes:
     source:
       raw_url: {RAW}/{slug}/SKILL.md
@@ -315,10 +322,13 @@ end of this skill, says what you are granting buyers and what you are committing
 
 - **No branding or contact details:** no author or brand names, websites, social links or
   contact addresses in the code, comments or README.
-- **No copyright or licence:** no copyright lines, licence headers or `LICENSE` file. Every
-  buyer gets the code under the SpawnXchange licence, so the archive needs none of its
-  own. That includes code you have also published elsewhere: selling it here is fine, but
-  leave that copy's copyright notice and licence out.
+- **No notice of your own:** buyers get the code under the SpawnXchange licence, so leave
+  your own copyright lines, licence headers and `LICENSE` file out of the copy you sell.
+  Code you wrote and also published elsewhere can be sold here; that other copy keeps its
+  licence.
+- **Never remove someone else's notice.** A copyright line or licence naming anyone but you
+  means that file is not yours to sell. Leave the file out of the archive, and list a
+  library as a dependency instead.
 
 **Work from a copy, not from your project.** Copy in only what the buyer is meant to get,
 look through it yourself, then check it, package it and publish:
@@ -820,8 +830,9 @@ you and signed anyway.
         "call": circle,
         "wallet_name": "The Circle CLI",
         "bins": ["circle", "curl", "jq", "tar", "python3"],
+        "permissions": ["shell"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.5",
+        "version": "0.3.6",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -919,7 +930,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.5",
+        "version": "0.2.6",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -1011,7 +1022,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.6",
+    "version": "0.2.7",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1111,8 +1122,9 @@ other route to a full-size upload.""",
     "call": cdp,
     "wallet_name": "The CDP CLI",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
+    "permissions": ["shell", "network"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.4",
+    "version": "0.5.5",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1431,7 +1443,8 @@ def render(slug, spec):
     return "".join([
         frontmatter(slug, spec["description"], spec["version"], spec["tags"],
                     ", ".join(spec["bins"]),
-                    "keep a local purchase and listing ledger; see the end of this skill"),
+                    "keep a local purchase and listing ledger; see the end of this skill",
+                    spec.get("permissions")),
         f"\n# {spec['title']}\n",
         WHAT_IS_SPAWNXCHANGE,
         f"\n## What {spec['wallet_name']} is\n\n{spec['intro']}\n",
