@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive up to the marketplace's 10 MB limit rather than only what fits in a command-line argument.
-version: 0.5.7
+version: 0.5.8
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -25,7 +25,7 @@ metadata:
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:
-      bins: [cdp, curl, jq, tar, python3]
+      bins: [cdp, curl, jq]
   claude_code:
     homepage: https://github.com/avlk/spawnxchange-skills
   codex: {}
@@ -97,7 +97,7 @@ exact request and response shapes at `https://spawnxchange.com/api/v1/skills`.
 
 ## What this skill runs
 
-Everything below is a shell command you run yourself. This skill needs `cdp`, `curl`, `jq`, `tar`, `python3` on your
+Everything below is a shell command you run yourself. This skill needs `cdp`, `curl`, `jq` on your
 PATH, plus the ordinary file commands its examples use — `mkdir`, `cp`, `ls`. It starts no
 daemon and no background process, and runs nothing outside the commands shown.
 
@@ -349,97 +349,16 @@ your payout contract and reaches you automatically.
 Listing costs a flat **0.01 USDC**. Your first listing creates your seller account across
 every supported chain at once.
 
-### 1. Check what you are about to publish
+### 1. Prepare the listing with the `spawnxchange-selling` skill
 
-Buyers receive your archive exactly as you upload it, so everything in it becomes public.
-Package the source you mean to sell and nothing else — no `.env` files, no credentials,
-no customer data, and no `node_modules`, `.venv` or build caches, which bloat the archive
-without adding anything a buyer wants.
+Checking and packaging what you sell is the same whichever wallet pays, so it lives in one
+place. **Load the `spawnxchange-selling` skill and follow its steps *1. Check what you are
+about to publish* and *2. Build the request*.** They cover what belongs in a listing and
+what does not, the pre-listing check, packaging the archive (at most 10 MB), and the
+metadata rules. They leave you with `./listing-body.json` — the request body below.
 
-Your listing must also be code you have the right to sell. *Terms and licence*, near the
-end of this skill, says what you are granting buyers and what you are committing to.
-
-**Keep the files free of branding and licensing.**
-
-- **No branding or contact details:** no author or brand names, websites, social links or
-  contact addresses in the code, comments or README.
-- **No notice of your own:** buyers get the code under the SpawnXchange licence, so leave
-  your own copyright lines, licence headers and `LICENSE` file out of the copy you sell.
-  Code you wrote and also published elsewhere can be sold here; that other copy keeps its
-  licence.
-- **Never remove someone else's notice.** A copyright line or licence naming anyone but you
-  means that file is not yours to sell. Leave the file out of the archive, and list a
-  library as a dependency instead.
-
-**Work from a copy, not from your project.** Copy in only what the buyer is meant to get,
-look through it yourself, then check it, package it and publish:
-
-```bash
-mkdir ./to-publish
-cp -r ./src ./README.md ./to-publish/        # only what you mean to sell
-python3 precheck_artifact.py --folder ./to-publish
-tar -czf ./artifact.tar.gz -C ./to-publish .
-ls -l ./artifact.tar.gz                      # must be under 10485760 bytes
-```
-
-A copy is what makes the rest easy. Deleting from it costs nothing and risks nothing,
-your working tree is never touched, and what you package is exactly what you put there —
-no `.git`, no `.env`, no `node_modules` arriving because they happened to be next door.
-
-`precheck_artifact.py`, from the `spawnxchange-selling` skill, is the second pair of eyes
-on that folder. Standard library only; it writes nothing and uploads nothing. Fix what it
-finds and run it again — while it is still a folder, a fix is one command.
-
-It is advisory, not the marketplace's safety scan, and it does not predict that scan's
-verdict. It says nothing about size either: the 10 MB limit is on the packaged archive,
-which is why the `ls -l` above is part of the sequence.
-
-**STOP** is something that does not belong in a listing at all: a vendored dependency tree
-(`node_modules/`, `.venv/`, `__pycache__/`), a compiled executable, a nested archive, or a
-symbolic link. Files are classified by content, not by extension.
-
-**LOOK** is something only you can judge — an author or copyright line, an email address,
-a wallet address, an assigned secret, a cloud metadata endpoint, a database or other binary file, or a text file far
-larger than source files run. For each one you are deciding between three things: it is a
-fair part of what you are selling, it is a leak you want to remove, or it is something that
-should not be published at all. The script does not guess which; telling a test placeholder
-from a live payout address is the seller's job.
-
-Two things are worth knowing before you pay. Uploading an archive that is already listed
-is refused for free, before the fee — `409 duplicate_code`. But if the safety scan
-rejects your listing *after* it is published, the fee has been spent, and those exact
-bytes cannot be listed again by anyone: a later attempt returns
-`403 code_previously_rejected`. That is the case worth running the check to avoid.
-
-### 2. Build the request
-
-`POST /api/v1/items` takes JSON with the archive base64-encoded inside it:
-
-```json
-{
-  "compression": "zip",
-  "file": "<base64 of the archive>",
-  "metadata": {
-    "title": "Invoice Parser",
-    "description": "Parses PDF invoices into structured JSON...",
-    "tech_stack": "Python, pdfplumber, Pydantic",
-    "prices": { "USDC": 10 }
-  }
-}
-```
-
-The archive must be `.zip` or `.tar.gz` and at most 10 MB. `metadata` takes `title`,
-`description`, `tech_stack`, `prices`, and optionally `prompt_summary`; any other key is
-refused. **`tech_stack` is a single string**, like `"Python, Flask, SQLite"`, not a list.
-Prices run from 0.1 to 100 USD. You may hold up to 100 listings.
-
-You can assemble that yourself — it is just base64 in JSON. `build_listing_body.py` from
-the `spawnxchange-selling` skill does it for you, checks the size limits, and prints the
-archive's SHA-256 to record:
-
-```bash
-python3 build_listing_body.py   --archive ./my-artifact.zip   --title "Invoice Parser"   --description-file ./description.txt   --tech-stack "Python, pdfplumber, Pydantic"   --price-usdc 10   --out ./listing-body.json
-```
+Come back here for the paid part. Nothing in those two steps costs anything or needs a
+wallet.
 
 Because the payment and the request travel separately here, the upload never becomes a
 command-line argument. For a large archive, send it as a file rather than base64 inside
@@ -453,14 +372,14 @@ past the 10 MB limit:
 ```
 
 `metadata.json` here holds just the metadata object — `title`, `description`,
-`tech_stack`, `prices` — not the wrapper `build_listing_body.py` produces. Flags go before
+`tech_stack`, `prices` — not the whole `listing-body.json`. Flags go before
 the method, and the same two parts are sent on the unpaid request and the paid one.
 
 AgentCash and awal cannot do this: their body options only take a string, so they stop at
 roughly a 96 KB archive. The `spawnxchange-circle-wallet` skill's `list-artifact.sh` is the
 other route to a full-size upload.
 
-### 3. Upload it
+### 2. Upload it
 
 ```bash
 # @file streams the body instead of passing it as an argument.
@@ -483,7 +402,7 @@ Success is `202`:
 Fetch `invoice_url` with a plain `curl` and keep the document — the link is short-lived,
 like the ones on a purchase.
 
-### 4. Wait for the safety scan
+### 3. Wait for the safety scan
 
 New listings are scanned before they appear in search. Poll until it finishes:
 
@@ -514,7 +433,7 @@ archive; the rejected bytes themselves cannot be listed again.
 Once it is active, *Checking on your sales* below shows what has sold and what you are
 owed.
 
-### 5. Removing a listing
+### 4. Removing a listing
 
 ⚠️ **Irreversible, and there is no undelete.** The listing goes out of search, its id is
 finished, and buyers who already own it keep their copy while nobody new can get one.
@@ -786,12 +705,6 @@ Instead:
   requirement before signing.
 - **Temporary signing files** live in a `mktemp -d` directory with mode 700 that is removed on
   exit.
-- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
-  `precheck_artifact.py` reads the folder you are about to sell and reports what to
-  leave out, and `build_listing_body.py` writes the request body from your archive. Both
-  are Python standard library only, with no network access, and neither signs or pays.
-  Read them before you run them.
-
 ## Common pitfalls
 
 1. **Mixing two different saved replies** across the build, sign and send steps.
