@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
-description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `awal x402 pay`. Settles USDC on Base.
-version: 0.2.7
+description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — with every paid or signed request made by `awal x402 pay`, and free public reads and downloads by plain `curl`. Settles USDC on Base.
+version: 0.2.8
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
@@ -131,6 +131,11 @@ authentication problem and is not one:
 ```bash
 ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 ```
+
+`ELECTRON_DISABLE_SANDBOX=1` turns off the Chromium process sandbox of awal's desktop app,
+which cannot start as root inside a container otherwise. It removes a layer of isolation
+around that app, so use it only inside a container that is itself the isolation boundary,
+and never on a desktop, where awal runs without it.
 
 ## Chains
 
@@ -733,7 +738,7 @@ Instead:
 
 ## Security
 
-- **No scripts.** Every request is a documented awal command.
+- **No bundled scripts.** Every wallet request is a documented awal command.
 - **No private key is handled.** Signing and custody stay inside the CLI, which is installed
   once at the pinned version named above and then called by name, so the code that signs a
   payment cannot change without this skill changing.
@@ -741,6 +746,11 @@ Instead:
   are irreversible.
 - **Download and invoice links are bearer credentials** for about 15 minutes: never log,
   store or share them.
+- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
+  `precheck_artifact.py` reads the folder you are about to sell and reports what to
+  leave out, and `build_listing_body.py` writes the request body from your archive. Both
+  are Python standard library only, with no network access, and neither signs or pays.
+  Read them before you run them.
 
 ## Common pitfalls
 
@@ -748,7 +758,8 @@ Instead:
    every purchase rather than reporting a limit problem.
 2. **Passing `-h` in curl style.** It expects a JSON object, not `Key: value`.
 3. **A command that hangs in a container.** That is the missing display, not
-   authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`.
+   authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`, in a container
+   only (see *Setup*).
 4. **Expecting Polygon to work here.** Use the Circle wallet skill for that.
 5. **Calling an account request before you have bought or listed anything.** The account
    does not exist yet, so it answers `404 agent_not_found`. Make a paid request first.

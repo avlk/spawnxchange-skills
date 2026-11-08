@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
-description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive of any size.
-version: 0.5.5
+description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive up to the marketplace's 10 MB limit rather than only what fits in a command-line argument.
+version: 0.5.6
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -133,29 +133,39 @@ account. Multisigs and ERC-6551 token-bound accounts are not supported.
 
 ## How a request is made
 
-Every paid and free request is the same four steps, which `scripts/x402-call.sh` runs for
-you:
+Every paid and free request is the same steps, which `scripts/x402-call.sh` runs for you
+with the checks listed after this. They are shown here so you know what the wrapper does;
+use the wrapper rather than typing them.
 
 ```bash
 TEMP_DIR=$(mktemp -d) && chmod 700 "$TEMP_DIR"
 trap 'rm -rf "$TEMP_DIR"' EXIT
+NETWORK="eip155:8453"                                     # Base
+USDC="0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"         # USDC on Base
+MAX_AMOUNT_RAW=1000000                                    # the most you will pay: $1.00
 
 # 1. Ask without paying. The reply says what is required.
 curl -sS -X POST -H "Content-Type: application/json" -d '{}'   "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
 
-# 2. Build the payment from exactly those requirements.
-cdp util x402 build --from "$WALLET_ADDRESS"   --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")"   > "$TEMP_DIR/typed_data.json"
+# 2. Check it before signing anything: your chain only, settled in that chain's USDC,
+#    and no more than the ceiling you chose before you looked.
+jq -c --arg net "$NETWORK" '[.accepts[] | select(.network == $net)]'   "$TEMP_DIR/challenge.json" > "$TEMP_DIR/accepts.json"
+jq -e --arg usdc "$USDC" --argjson max "$MAX_AMOUNT_RAW"   'length == 1 and (.[0].asset | ascii_downcase) == $usdc
+   and ((.[0].amount // .[0].maxAmountRequired) | tonumber) <= $max'   "$TEMP_DIR/accepts.json" >/dev/null || { echo "refusing to sign" >&2; exit 1; }
 
-# 3. Sign it. The key stays inside CDP.
+# 3. Build the payment from exactly that requirement.
+cdp util x402 build --from "$WALLET_ADDRESS"   --payment-requirements "$(cat "$TEMP_DIR/accepts.json")"   > "$TEMP_DIR/typed_data.json"
+
+# 4. Sign it. The key stays inside CDP.
 cdp evm accounts sign typed-data "$WALLET_ADDRESS"   primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")"   domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")"   message:="$(jq -c '.message' "$TEMP_DIR/typed_data.json")"   types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")"   | jq -r '.signature' > "$TEMP_DIR/signature.txt"
 
-# 4. Send the same request again, with the payment attached.
-cdp util x402 encode --x402-version 2   --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")"   --signature "$(cat "$TEMP_DIR/signature.txt")"   --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")"   > "$TEMP_DIR/header.txt"
+# 5. Send the same request again, with the payment attached.
+cdp util x402 encode --x402-version 2   --payment-requirements "$(cat "$TEMP_DIR/accepts.json")"   --signature "$(cat "$TEMP_DIR/signature.txt")"   --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")"   > "$TEMP_DIR/header.txt"
 
 curl -sS -X POST -H "Content-Type: application/json"   -H "PAYMENT-SIGNATURE: $(cat "$TEMP_DIR/header.txt")"   -d '{"policy_accepted": true, "license_accepted": true}'   "$SX/api/v1/items/$ITEM/acquire"
 ```
 
-⚠️ Steps 2–4 must all use the same saved reply. Asking again produces a fresh one that
+⚠️ Steps 2–5 must all use the same saved reply. Asking again produces a fresh one that
 the earlier signature no longer matches, and each is single-use and short-lived.
 
 The rest of this skill uses the wrapper.
@@ -182,7 +192,9 @@ fi
    the first one is, and any price it cannot read as a plain integer of raw units is
    refused rather than guessed at.
 3. **`--network` picks the chain**, so a payment cannot be signed for one you did not
-   choose. A paid challenge offering several chains stops and asks for it.
+   choose. A paid challenge offering several chains stops and asks for it, and a paid
+   requirement must settle in that chain's USDC contract, pinned in the script; any other
+   asset is refused unsigned, since a cap in raw units means nothing in another token.
 4. **An upload is `--upload` and `--metadata`, two file paths.** The script builds the
    form itself and takes no `curl` arguments from you: one it passed through could name a
    second destination, and the `PAYMENT-SIGNATURE` header goes to every destination `curl`
@@ -773,6 +785,11 @@ Instead:
   requirement before signing.
 - **Temporary signing files** live in a `mktemp -d` directory with mode 700 that is removed on
   exit.
+- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
+  `precheck_artifact.py` reads the folder you are about to sell and reports what to
+  leave out, and `build_listing_body.py` writes the request body from your archive. Both
+  are Python standard library only, with no network access, and neither signs or pays.
+  Read them before you run them.
 
 ## Common pitfalls
 

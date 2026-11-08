@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
-description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
-version: 0.3.6
+description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback. Every paid or signed request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead; free public reads and downloads use plain `curl`. Covers Base and Polygon.
+version: 0.3.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -795,6 +795,11 @@ Instead:
   are irreversible.
 - **Download and invoice links are bearer credentials** for about 15 minutes: never log,
   store or share them.
+- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
+  `precheck_artifact.py` reads the folder you are about to sell and reports what to
+  leave out, and `build_listing_body.py` writes the request body from your archive. Both
+  are Python standard library only, with no network access, and neither signs or pays.
+  Read them before you run them.
 
 ## Common pitfalls
 

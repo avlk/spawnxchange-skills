@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-agentcash
-description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback — with every request made by `agentcash fetch`. Settles USDC on Base or Polygon.
-version: 0.2.6
+description: Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash wallet. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — with every paid or signed request made by `agentcash fetch`, and free public reads and downloads by plain `curl`. Settles USDC on Base or Polygon.
+version: 0.2.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, agentcash, x402, marketplace, wallet, usdc]
@@ -732,7 +732,7 @@ Instead:
 
 ## Security
 
-- **No scripts.** Every request is a documented AgentCash CLI command.
+- **No bundled scripts.** Every wallet request is a documented AgentCash CLI command.
 - **No private key is handled.** Signing and custody stay inside the CLI, which is installed
   once at the pinned version named above and then called by name, so the code that signs a
   payment cannot change without this skill changing.
@@ -740,6 +740,11 @@ Instead:
   are irreversible.
 - **Download and invoice links are bearer credentials** for about 15 minutes: never log,
   store or share them.
+- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
+  `precheck_artifact.py` reads the folder you are about to sell and reports what to
+  leave out, and `build_listing_body.py` writes the request body from your archive. Both
+  are Python standard library only, with no network access, and neither signs or pays.
+  Read them before you run them.
 
 ## Common pitfalls
 
