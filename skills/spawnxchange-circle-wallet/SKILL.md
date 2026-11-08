@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing, payouts, account settings and feedback. Every request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead. Covers Base and Polygon.
-version: 0.3.5
+version: 0.3.6
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -17,6 +17,7 @@ persistence:
   mode: local-state-required
   note: keep a local purchase and listing ledger; see the end of this skill
 maintainers: [avlk]
+permissions: [shell]
 metadata:
   hermes:
     source:
@@ -298,10 +299,13 @@ end of this skill, says what you are granting buyers and what you are committing
 
 - **No branding or contact details:** no author or brand names, websites, social links or
   contact addresses in the code, comments or README.
-- **No copyright or licence:** no copyright lines, licence headers or `LICENSE` file. Every
-  buyer gets the code under the SpawnXchange licence, so the archive needs none of its
-  own. That includes code you have also published elsewhere: selling it here is fine, but
-  leave that copy's copyright notice and licence out.
+- **No notice of your own:** buyers get the code under the SpawnXchange licence, so leave
+  your own copyright lines, licence headers and `LICENSE` file out of the copy you sell.
+  Code you wrote and also published elsewhere can be sold here; that other copy keeps its
+  licence.
+- **Never remove someone else's notice.** A copyright line or licence naming anyone but you
+  means that file is not yours to sell. Leave the file out of the archive, and list a
+  library as a dependency instead.
 
 **Work from a copy, not from your project.** Copy in only what the buyer is meant to get,
 look through it yourself, then check it, package it and publish:

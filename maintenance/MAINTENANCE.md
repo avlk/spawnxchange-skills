@@ -87,6 +87,13 @@ what a skill runs in `metadata.openclaw.requires.bins` and in its *What this ski
 section, and keep that list matching the commands the body actually uses — an incomplete
 list is a checkable false claim.
 
+**Declare tool scope with `permissions`, not `allowed-tools`.** ClawHub's SkillSpector
+scanner reports a skill with scripts and no scope as *MCP Least Privilege* (LP3). A
+top-level `permissions: [shell, file_read, file_write, network]` list satisfies it, and no
+agent runtime grants anything from it; Hermes scans it `safe`. Name exactly what the
+bundled scripts do: a missing capability is a High finding (LP1), an extra one a Low (LP4).
+A skill without scripts declares nothing.
+
 ## The pre-publication check reads a folder
 
 `precheck_artifact.py` takes `--folder`, not an archive. Two reasons, both worth keeping:

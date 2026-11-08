@@ -45,6 +45,18 @@ run_lint_checks() {
     fi
     rm -rf "$probe"
 
+    echo "Checking the precheck stops when its scan budget runs out..."
+    probe=$(mktemp -d)
+    for i in $(seq -w 1 520); do truncate -s 131072 "$probe/f$i.txt"; done
+    printf 'API_KEY = "abcdefghijklmnopqrstuvwxyz"\n' > "$probe/zz.py"
+    out=$(python3 skills/spawnxchange-selling/scripts/precheck_artifact.py --folder "$probe" 2>&1 || true)
+    if ! printf '%s\n' "$out" | grep -q 'were not examined'; then
+      echo "ERROR: precheck_artifact.py passed files it never examined:" >&2
+      printf '%s\n' "$out" | head -20 >&2
+      fail=1
+    fi
+    rm -rf "$probe"
+
     echo "Checking the precheck reports author and copyright lines..."
     probe=$(mktemp -d)
     printf '"""Ledger.\n\nCopyright (c) 2026 SomeHandle.\n"""\n' > "$probe/a.py"
