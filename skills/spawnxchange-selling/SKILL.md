@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, checking the folder to be sold for leaked secrets with a local read-only script before packaging it, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, setting the public seller username once, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.6
+version: 0.3.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -485,8 +485,8 @@ we can reply.
   parsed. It never follows a symbolic link, reads only a capped prefix of each file, and
   writes nothing. Anything resembling a secret is reported as a file and line number, never
   quoted, so the check does not copy it into transcripts or logs.
-- **Its list of credential file names (`.env`, `id_rsa`, `.aws/credentials` and so on) is a
-  warning list.** It is matched against paths inside the folder being sold, so the seller
+- **Its list of credential file names (environment files, SSH keys, cloud credential
+  files) is a warning list.** It is matched against paths inside the folder being sold, so the seller
   knows to leave those files out of the archive. Nothing outside that folder is read.
 - **It stops rather than guesses.** A folder too large to examine in full is reported as a
   problem, never as clean.
