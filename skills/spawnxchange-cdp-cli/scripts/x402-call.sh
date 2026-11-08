@@ -180,6 +180,19 @@ x402_call() {
     local paid=1
     jq -e "$amounts | all(. == \"0\")" "$work/accepts.json" >/dev/null && paid=0
 
+    # A paid requirement must settle in USDC on its chain. The cap below is in raw
+    # units, which only means dollars for USDC; a challenge naming another asset
+    # would turn the same number into a different amount of a different token.
+    if [ "$paid" -eq 1 ] && ! jq -e '
+        {"eip155:8453": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+         "eip155:137": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"} as $usdc
+        | all(.[]; (.asset // "" | ascii_downcase) == $usdc[.network])' \
+        "$work/accepts.json" >/dev/null; then
+      echo "refusing: a requirement does not settle in USDC on Base or Polygon:" >&2
+      jq -c '[.[] | {network, asset}]' "$work/accepts.json" >&2
+      return 1
+    fi
+
     # A zero-amount challenge is the identity handshake: it proves who you are
     # and moves no money. Anything else spends USDC.
     if [ "$paid" -eq 1 ] && [ "$execute" -ne 1 ]; then

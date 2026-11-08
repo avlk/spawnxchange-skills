@@ -112,6 +112,17 @@ archive you choose to list.
 """
 
 
+# Every wallet walkthrough lists through the selling skill's two Python helpers, so
+# every Security section says so; a skill claiming "no scripts" while its listing steps
+# run two is a mismatch a reviewer flags.
+SELLING_HELPERS_SECURITY = r"""- **Listing uses two helpers from the `spawnxchange-selling` skill**, not from this one:
+  `precheck_artifact.py` reads the folder you are about to sell and reports what to
+  leave out, and `build_listing_body.py` writes the request body from your archive. Both
+  are Python standard library only, with no network access, and neither signs or pays.
+  Read them before you run them.
+"""
+
+
 def frontmatter(slug, description, version, tags, bins, persistence_note, permissions=None):
     # No `allowed-tools` here. It was tried as an answer to a scanner finding
     # about undeclared shell use, and Hermes reads the field's mere presence as
@@ -832,16 +843,17 @@ you and signed anyway.
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "permissions": ["shell"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.6",
+        "version": "0.3.7",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
             "Buy and sell AI-generated code artifacts on SpawnXchange using a Circle "
             "Agent Wallet. Complete walkthrough — searching, buying, taking delivery, "
-            "listing, payouts, account settings and feedback. Every request is one "
-            "`circle services pay` command, except an upload too large to pass as an "
-            "argument, which a bundled script signs with `circle wallet sign typed-data` "
-            "instead. Covers Base and Polygon."
+            "listing and removing listings, payouts, account settings and feedback. Every "
+            "paid or signed request is one `circle services pay` command, except an upload "
+            "too large to pass as an argument, which a bundled script signs with `circle "
+            "wallet sign typed-data` instead; free public reads and downloads use plain "
+            "`curl`. Covers Base and Polygon."
         ),
         "tags": "spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc",
         "intro": r"""A command-line wallet from Circle that holds USDC and can pay for services on your
@@ -930,14 +942,15 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.6",
+        "version": "0.2.7",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
             "Buy and sell AI-generated code artifacts on SpawnXchange using an AgentCash "
-            "wallet. Complete walkthrough — searching, buying, taking delivery, listing, "
-            "payouts, account settings and feedback — with every request made by "
-            "`agentcash fetch`. Settles USDC on Base or Polygon."
+            "wallet. Complete walkthrough — searching, buying, taking delivery, listing "
+            "and removing listings, payouts, account settings and feedback — with every "
+            "paid or signed request made by `agentcash fetch`, and free public reads and "
+            "downloads by plain `curl`. Settles USDC on Base or Polygon."
         ),
         "tags": "spawnxchange, agentcash, x402, marketplace, wallet, usdc",
         "intro": r"""A command-line wallet that holds USDC and pays for APIs on your behalf. Give
@@ -993,7 +1006,7 @@ export NETWORK="base"
 > failure rather than a limit you set. AgentCash also tries a non-payment authentication
 > first; the marketplace does not offer one, so it falls through to paying.
 > `--payment-protocol x402` skips that step.""",
-        "security": r"""- **No scripts.** Every request is a documented AgentCash CLI command.
+        "security": r"""- **No bundled scripts.** Every wallet request is a documented AgentCash CLI command.
 - **No private key is handled.** Signing and custody stay inside the CLI, which is installed
   once at the pinned version named above and then called by name, so the code that signs a
   payment cannot change without this skill changing.
@@ -1022,14 +1035,15 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.7",
+    "version": "0.2.8",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
         "Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase "
         "Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking "
-        "delivery, listing, payouts, account settings and feedback — with every request "
-        "made by `awal x402 pay`. Settles USDC on Base."
+        "delivery, listing and removing listings, payouts, account settings and feedback "
+        "— with every paid or signed request made by `awal x402 pay`, and free public "
+        "reads and downloads by plain `curl`. Settles USDC on Base."
     ),
     "tags": "spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet",
     "intro": r"""Coinbase's Agentic Wallet: a command-line wallet that holds USDC and pays for services
@@ -1073,6 +1087,11 @@ authentication problem and is not one:
 ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a awal status --json
 ```
 
+`ELECTRON_DISABLE_SANDBOX=1` turns off the Chromium process sandbox of awal's desktop app,
+which cannot start as root inside a container otherwise. It removes a layer of isolation
+around that app, so use it only inside a container that is itself the isolation boundary,
+and never on a desktop, where awal runs without it.
+
 ## Chains
 
 `awal x402 pay` settles USDC on **Base**, which is one of the two chains the marketplace
@@ -1084,7 +1103,7 @@ Paying on Polygon is not something this skill has verified through awal — the
 > **Tech note.** `--max-amount` is a spend limit in USDC **atomic units**, not dollars:
 > six decimal places, so `1000000` is $1.00 and `25000000` is $25.00. Passing `25` sets
 > the limit to 25 millionths of a cent and nothing will go through.""",
-    "security": r"""- **No scripts.** Every request is a documented awal command.
+    "security": r"""- **No bundled scripts.** Every wallet request is a documented awal command.
 - **No private key is handled.** Signing and custody stay inside the CLI, which is installed
   once at the pinned version named above and then called by name, so the code that signs a
   payment cannot change without this skill changing.
@@ -1096,7 +1115,8 @@ Paying on Polygon is not something this skill has verified through awal — the
    every purchase rather than reporting a limit problem.
 2. **Passing `-h` in curl style.** It expects a JSON object, not `Key: value`.
 3. **A command that hangs in a container.** That is the missing display, not
-   authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`.
+   authentication — prefix with `ELECTRON_DISABLE_SANDBOX=1 xvfb-run -a`, in a container
+   only (see *Setup*).
 4. **Expecting Polygon to work here.** Use the Circle wallet skill for that.""",
 }
 
@@ -1124,7 +1144,7 @@ other route to a full-size upload.""",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "permissions": ["shell", "network"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.5",
+    "version": "0.5.6",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
@@ -1139,9 +1159,10 @@ PRICE_RAW=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "description": (
         "Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed "
         "by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, "
-        "buying, taking delivery, listing, payouts, account settings and feedback — "
-        "signing each payment explicitly, which is also what lets it upload an archive "
-        "of any size."
+        "buying, taking delivery, listing and removing listings, payouts, account "
+        "settings and feedback — signing each payment explicitly, which is also what "
+        "lets it upload an archive up to the marketplace's 10 MB limit rather than only "
+        "what fits in a command-line argument."
     ),
     "tags": "spawnxchange, cdp, cdp-cli, x402, marketplace, wallet",
     "intro": r"""Coinbase's Developer Platform CLI. It holds keys and signs with them, but — unlike the
@@ -1192,23 +1213,36 @@ account. Multisigs and ERC-6551 token-bound accounts are not supported.
 
 ## How a request is made
 
-Every paid and free request is the same four steps, which `scripts/x402-call.sh` runs for
-you:
+Every paid and free request is the same steps, which `scripts/x402-call.sh` runs for you
+with the checks listed after this. They are shown here so you know what the wrapper does;
+use the wrapper rather than typing them.
 
 ```bash
 TEMP_DIR=$(mktemp -d) && chmod 700 "$TEMP_DIR"
 trap 'rm -rf "$TEMP_DIR"' EXIT
+NETWORK="eip155:8453"                                     # Base
+USDC="0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"         # USDC on Base
+MAX_AMOUNT_RAW=1000000                                    # the most you will pay: $1.00
 
 # 1. Ask without paying. The reply says what is required.
 curl -sS -X POST -H "Content-Type: application/json" -d '{}' \
   "$SX/api/v1/items/$ITEM/acquire" > "$TEMP_DIR/challenge.json"
 
-# 2. Build the payment from exactly those requirements.
+# 2. Check it before signing anything: your chain only, settled in that chain's USDC,
+#    and no more than the ceiling you chose before you looked.
+jq -c --arg net "$NETWORK" '[.accepts[] | select(.network == $net)]' \
+  "$TEMP_DIR/challenge.json" > "$TEMP_DIR/accepts.json"
+jq -e --arg usdc "$USDC" --argjson max "$MAX_AMOUNT_RAW" \
+  'length == 1 and (.[0].asset | ascii_downcase) == $usdc
+   and ((.[0].amount // .[0].maxAmountRequired) | tonumber) <= $max' \
+  "$TEMP_DIR/accepts.json" >/dev/null || { echo "refusing to sign" >&2; exit 1; }
+
+# 3. Build the payment from exactly that requirement.
 cdp util x402 build --from "$WALLET_ADDRESS" \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
+  --payment-requirements "$(cat "$TEMP_DIR/accepts.json")" \
   > "$TEMP_DIR/typed_data.json"
 
-# 3. Sign it. The key stays inside CDP.
+# 4. Sign it. The key stays inside CDP.
 cdp evm accounts sign typed-data "$WALLET_ADDRESS" \
   primaryType="$(jq -r '.primaryType' "$TEMP_DIR/typed_data.json")" \
   domain:="$(jq -c '.domain' "$TEMP_DIR/typed_data.json")" \
@@ -1216,9 +1250,9 @@ cdp evm accounts sign typed-data "$WALLET_ADDRESS" \
   types:="$(jq -c '.types' "$TEMP_DIR/typed_data.json")" \
   | jq -r '.signature' > "$TEMP_DIR/signature.txt"
 
-# 4. Send the same request again, with the payment attached.
+# 5. Send the same request again, with the payment attached.
 cdp util x402 encode --x402-version 2 \
-  --payment-requirements "$(jq -c '.accepts' "$TEMP_DIR/challenge.json")" \
+  --payment-requirements "$(cat "$TEMP_DIR/accepts.json")" \
   --signature "$(cat "$TEMP_DIR/signature.txt")" \
   --authorization "$(jq -c '.message' "$TEMP_DIR/typed_data.json")" \
   > "$TEMP_DIR/header.txt"
@@ -1229,7 +1263,7 @@ curl -sS -X POST -H "Content-Type: application/json" \
   "$SX/api/v1/items/$ITEM/acquire"
 ```
 
-⚠️ Steps 2–4 must all use the same saved reply. Asking again produces a fresh one that
+⚠️ Steps 2–5 must all use the same saved reply. Asking again produces a fresh one that
 the earlier signature no longer matches, and each is single-use and short-lived.
 
 The rest of this skill uses the wrapper.
@@ -1256,7 +1290,9 @@ fi
    the first one is, and any price it cannot read as a plain integer of raw units is
    refused rather than guessed at.
 3. **`--network` picks the chain**, so a payment cannot be signed for one you did not
-   choose. A paid challenge offering several chains stops and asks for it.
+   choose. A paid challenge offering several chains stops and asks for it, and a paid
+   requirement must settle in that chain's USDC contract, pinned in the script; any other
+   asset is refused unsigned, since a cap in raw units means nothing in another token.
 4. **An upload is `--upload` and `--metadata`, two file paths.** The script builds the
    form itself and takes no `curl` arguments from you: one it passed through could name a
    second destination, and the `PAYMENT-SIGNATURE` header goes to every destination `curl`
@@ -1485,7 +1521,7 @@ def render(slug, spec):
         ),
         TERMS_AND_LICENCE,
         PAYMENT_IN_DOUBT,
-        "\n## Security\n\n" + spec["security"] + "\n",
+        "\n## Security\n\n" + spec["security"] + "\n" + SELLING_HELPERS_SECURITY,
         "\n## Common pitfalls\n\n" + spec["pitfalls"] + SHARED_PITFALLS,
         FOOTER,
     ])
