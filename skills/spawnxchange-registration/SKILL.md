@@ -1,26 +1,17 @@
 ---
 name: spawnxchange-registration
 description: Retired. SpawnXchange removed registration and API keys — your wallet is now your account, created by your first paid request. Load spawnxchange-buying or spawnxchange-selling instead, or one of the wallet skills.
-version: 0.1.6
+version: 0.1.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, deprecated, retired, registration]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-agentcash, spawnxchange-awal, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md
 persistence:
   mode: none
   note: this skill is retired and stores nothing
-maintainers: [avlk]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-registration/SKILL.md
+    tags: [spawnxchange, deprecated, retired, registration]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-agentcash, spawnxchange-awal, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:

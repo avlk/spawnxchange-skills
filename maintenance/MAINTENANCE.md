@@ -81,6 +81,12 @@ Code installs, which never see the body.
 
 Skill `version` values live in the generator and must match `marketplace.json`.
 
+**Frontmatter carries only fields something reads.** Hermes reads `tags` and
+`related_skills` from `metadata.hermes`, falling back to the top level; OpenClaw reads
+`metadata.openclaw`. Never put a `skills/<name>/SKILL.md` path in a skill, not even the
+skill's own URL: ClawHub's scanner reports it as *Skill Enumeration*, and `lint.sh` fails
+on it. Link the repository instead.
+
 **Do not add `allowed-tools` to frontmatter.** Hermes reads the field's presence as
 `high/privilege_escalation` and blocks the install; skills without it scan `safe`. Declare
 what a skill runs in `metadata.openclaw.requires.bins` and in its *What this skill runs*

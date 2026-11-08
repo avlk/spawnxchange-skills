@@ -85,6 +85,14 @@ run_lint_checks() {
       fail=1
     fi
 
+    # SkillSpector's "Skill Enumeration" rule (AS3) reads any skills/<name>/SKILL.md
+    # path as one skill reading another's instructions, our own URLs included.
+    echo "Checking skills for skills/<name>/SKILL.md paths..."
+    if grep -rniE 'skills?/[A-Z][A-Za-z0-9_-]+/SKILL\.md' skills/; then
+      echo "ERROR: a skills/<name>/SKILL.md path is flagged as Skill Enumeration by ClawHub's scanner; link the repository instead."
+      fail=1
+    fi
+
     echo "Checking generated wallet skills are in sync with their template..."
     if ! python3 maintenance/generate-wallet-skills.py; then
       echo "ERROR: wallet SKILL.md files differ from maintenance/generate-wallet-skills.py." >&2

@@ -9,7 +9,7 @@
     {
       "name": "spawnxchange",
       "description": "Which SpawnXchange skill to load, and how the marketplace works.",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "./",
       "strict": false,
       "skills": [
@@ -22,7 +22,7 @@
     {
       "name": "spawnxchange-buying",
       "description": "Buy AI-generated code artifacts on SpawnXchange over x402, as plain HTTP requests.",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "./",
       "strict": false,
       "skills": [

@@ -5,22 +5,13 @@ version: 0.2.10
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-awal/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-awal/SKILL.md
 persistence:
   mode: local-state-required
   note: keep a local purchase and listing ledger; see the end of this skill
-maintainers: [avlk]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-awal/SKILL.md
+    tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:

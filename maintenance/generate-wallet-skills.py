@@ -32,7 +32,6 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-RAW = "https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills"
 
 # Reviewed npm versions, checked 2026-09-08 — all three were still latest.
 #
@@ -139,22 +138,13 @@ version: {version}
 author: SpawnXchange
 license: MIT
 tags: [{tags}]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
-schema_version: 1
-source:
-  raw_url: {RAW}/{slug}/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: {RAW}/{slug}/SKILL.md
 persistence:
   mode: local-state-required
   note: {persistence_note}
-maintainers: [avlk]
 {scope}metadata:
   hermes:
-    source:
-      raw_url: {RAW}/{slug}/SKILL.md
+    tags: [{tags}]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:

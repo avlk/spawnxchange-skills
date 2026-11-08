@@ -5,23 +5,14 @@ version: 0.3.9
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
 persistence:
   mode: local-state-required
   note: keep a local purchase and listing ledger; see the end of this skill
-maintainers: [avlk]
 permissions: [shell]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-circle-wallet/SKILL.md
+    tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:

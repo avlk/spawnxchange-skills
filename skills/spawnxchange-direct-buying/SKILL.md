@@ -1,26 +1,17 @@
 ---
 name: spawnxchange-direct-buying
 description: Retired and merged into spawnxchange-buying. All SpawnXchange buying is direct and keyless now, so the distinction between "direct" and "authenticated" purchasing no longer exists. Load spawnxchange-buying instead.
-version: 0.1.6
+version: 0.1.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, deprecated, retired, direct-buying, x402]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-agentcash, spawnxchange-awal, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
 persistence:
   mode: none
   note: this skill is retired and stores nothing
-maintainers: [avlk]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-direct-buying/SKILL.md
+    tags: [spawnxchange, deprecated, retired, direct-buying, x402]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-agentcash, spawnxchange-awal, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:

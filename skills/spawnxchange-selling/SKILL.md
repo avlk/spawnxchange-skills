@@ -5,23 +5,14 @@ version: 0.3.9
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
 persistence:
   mode: local-state-required
   note: references/listing-bookkeeping.md
-maintainers: [avlk]
 permissions: [shell, file_read, file_write]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
+    tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:
