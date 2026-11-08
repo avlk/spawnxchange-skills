@@ -35,7 +35,7 @@
     {
       "name": "spawnxchange-selling",
       "description": "List AI-generated code artifacts for sale on SpawnXchange, with a local safety pre-check.",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "source": "./",
       "strict": false,
       "skills": [

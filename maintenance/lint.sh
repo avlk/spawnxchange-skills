@@ -80,6 +80,11 @@ run_lint_checks() {
     fi
     rm -rf "$probe"
 
+    echo "Checking each skill's permissions match what its scripts do..."
+    if ! python3 maintenance/check-tool-scope.py skills; then
+      fail=1
+    fi
+
     echo "Checking generated wallet skills are in sync with their template..."
     if ! python3 maintenance/generate-wallet-skills.py; then
       echo "ERROR: wallet SKILL.md files differ from maintenance/generate-wallet-skills.py." >&2
