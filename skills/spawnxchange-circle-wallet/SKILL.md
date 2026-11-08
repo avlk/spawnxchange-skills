@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-circle-wallet
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a Circle Agent Wallet. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback. Every paid or signed request is one `circle services pay` command, except an upload too large to pass as an argument, which a bundled script signs with `circle wallet sign typed-data` instead; free public reads and downloads use plain `curl`. Covers Base and Polygon.
-version: 0.3.7
+version: 0.3.8
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, circle, agent-wallet, x402, marketplace, wallet, usdc]
@@ -504,7 +504,8 @@ circle services pay "$SX/api/v1/items/$ITEM_ID" \
   --output json
 ```
 
-Returns `200 {"ok": true}`, and calling it twice is harmless. Keep your source archive —
+Returns `200 {"ok": true}`. If the reply is lost, sending the same request again for the
+same `item_id` is safe and touches nothing else. Keep your source archive —
 it is the only copy you will have.
 
 ## Your account

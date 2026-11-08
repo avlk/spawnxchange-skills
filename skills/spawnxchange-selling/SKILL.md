@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, checking the folder to be sold for leaked secrets with a local read-only script before packaging it, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, setting the public seller username once, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.7
+version: 0.3.8
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
@@ -343,7 +343,8 @@ believe should go and ask.
 
 `x402 DELETE /api/v1/items/{item_id} (0 USDC)`
 
-Returns `200 {"ok": true}`, and calling it twice is harmless. Keep your source archive —
+Returns `200 {"ok": true}`. If the reply is lost, sending the same request again for the
+same `item_id` is safe and touches nothing else. Keep your source archive —
 it is the only copy you will have.
 
 ## Which chains you accept payment on

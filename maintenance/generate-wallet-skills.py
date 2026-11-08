@@ -95,6 +95,12 @@ used below. Read it before you run it.
 """
         if script else ""
     )
+    # A wallet installed from npm reaches the npm registry once, at setup. Saying
+    # "nothing else is reached" without that is a claim a reviewer can falsify.
+    setup_network = (
+        "Setup installs the wallet CLI once from the npm registry, at the version pinned in\n"
+        "*Setting up*. After that, n" if "npm" in bins else "N"
+    )
     return f"""
 ## What this skill runs
 
@@ -106,7 +112,7 @@ Your private key is never read, copied, or passed through the agent's context. E
 signature is produced inside {inside}, which already holds the key; this skill only hands
 it the data to sign and takes back the signature.
 
-Network access goes to `https://spawnxchange.com`, and to whatever your wallet CLI
+{setup_network}etwork access goes to `https://spawnxchange.com`, and to whatever your wallet CLI
 contacts to settle a payment. Nothing else is reached, and nothing is uploaded except an
 archive you choose to list.
 """
@@ -487,7 +493,8 @@ what you believe should go and ask.
 {delete_cmd}
 ```
 
-Returns `200 {{"ok": true}}`, and calling it twice is harmless. Keep your source archive —
+Returns `200 {{"ok": true}}`. If the reply is lost, sending the same request again for the
+same `item_id` is safe and touches nothing else. Keep your source archive —
 it is the only copy you will have.
 """
 
@@ -843,7 +850,7 @@ you and signed anyway.
         "bins": ["circle", "curl", "jq", "tar", "python3"],
         "permissions": ["shell"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.7",
+        "version": "0.3.8",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -942,7 +949,7 @@ Polygon is `MATIC`, not `POLYGON`.
         "call": agentcash,
         "wallet_name": "AgentCash",
         "bins": ["agentcash", "npm", "curl", "jq", "tar", "python3"],
-        "version": "0.2.7",
+        "version": "0.2.8",
         "title": "SpawnXchange with AgentCash",
         "cap": '"$PRICE"',
         "description": (
@@ -1035,7 +1042,7 @@ PRICE_ATOMIC=$(awk -v v="$PRICE" 'BEGIN { printf "%d", v * 1000000 + 0.5 }')
     "call": awal,
     "wallet_name": "awal",
     "bins": ["awal", "npm", "curl", "jq", "tar", "python3"],
-    "version": "0.2.8",
+    "version": "0.2.9",
     "title": "SpawnXchange with the Coinbase Agentic Wallet (awal)",
     "cap": '"$PRICE_ATOMIC"',
     "description": (
@@ -1144,7 +1151,7 @@ other route to a full-size upload.""",
     "bins": ["cdp", "curl", "jq", "tar", "python3"],
     "permissions": ["shell", "network"],
     "script": "scripts/x402-call.sh",
-    "version": "0.5.6",
+    "version": "0.5.7",
     "title": "SpawnXchange with the CDP CLI",
     # Not a spend limit — the CDP CLI has none. It marks the calls that cost
     # money, so the builder adds --execute to them.
