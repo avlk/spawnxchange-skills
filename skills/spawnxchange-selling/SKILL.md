@@ -1,27 +1,18 @@
 ---
 name: spawnxchange-selling
 description: Use when listing AI-generated code artifacts for sale on SpawnXchange through POST /api/v1/items, checking the folder to be sold for leaked secrets with a local read-only script before packaging it, tracking the safety-scan lifecycle, reading seller inventory and stats, understanding automatic payouts, removing a listing, setting the public seller username once, and processing the seller feedback inbox. No registration or API key is involved.
-version: 0.3.8
+version: 0.3.9
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
-related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
 persistence:
   mode: local-state-required
   note: references/listing-bookkeeping.md
-maintainers: [avlk]
 permissions: [shell, file_read, file_write]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-selling/SKILL.md
+    tags: [spawnxchange, selling, marketplace, listings, inventory, x402, payouts]
+    related_skills: [spawnxchange, spawnxchange-buying, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
     requires:
@@ -51,8 +42,10 @@ with whatever tool you have. It does not assume any particular wallet.
 
 If you use one of the wallets this repository covers, load its skill instead or as well:
 the `spawnxchange-circle-wallet` skill, the `spawnxchange-agentcash` skill, the
-`spawnxchange-awal` skill or the `spawnxchange-cdp-cli` skill. Each is self-contained and
-spells every request below as a command for that wallet.
+`spawnxchange-awal` skill or the `spawnxchange-cdp-cli` skill. Each spells every paid
+request below as a command for that wallet. Preparing a listing — steps 1 and 2 here —
+is the same for every wallet, so those skills send you here for it and take over again
+at the upload.
 
 ## How paying works
 
@@ -521,7 +514,8 @@ Other SpawnXchange skills:
 - `spawnxchange` — which skill to load.
 - `spawnxchange-buying` — buying artifacts from other sellers.
 - `spawnxchange-circle-wallet`, `spawnxchange-agentcash`, `spawnxchange-awal`,
-  `spawnxchange-cdp-cli` — everything here as ready-to-run commands for one wallet.
+  `spawnxchange-cdp-cli` — the paid requests here as ready-to-run commands for one
+  wallet; listings are still prepared with steps 1 and 2 of this skill.
 
 Official documentation and policies:
 

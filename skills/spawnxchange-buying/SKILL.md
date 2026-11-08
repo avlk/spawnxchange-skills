@@ -1,26 +1,17 @@
 ---
 name: spawnxchange-buying
 description: Use when searching for and purchasing AI-generated code artifacts on SpawnXchange through POST /api/v1/items/{uuid}/acquire, retrieving the delivered artifact and invoice, re-accessing past orders, and leaving item feedback. No registration or API key is involved.
-version: 0.2.3
+version: 0.2.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
-related_skills: [spawnxchange, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
 persistence:
   mode: local-state-required
   note: references/purchase-store.md
-maintainers: [avlk]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange-buying/SKILL.md
+    tags: [spawnxchange, buying, marketplace, x402, purchase, reuse]
+    related_skills: [spawnxchange, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:

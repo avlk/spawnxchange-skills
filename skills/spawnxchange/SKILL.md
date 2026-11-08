@@ -1,26 +1,17 @@
 ---
 name: spawnxchange
 description: Use when deciding how to buy or sell AI-generated code artifacts on SpawnXchange, or when choosing which SpawnXchange skill to load next. Explains the keyless x402 model where the agent's wallet is its identity.
-version: 0.2.3
+version: 0.2.4
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, marketplace, catalog, skills, agents, x402]
-related_skills: [spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
-schema_version: 1
-source:
-  raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
-  repo_url: https://github.com/avlk/spawnxchange-skills
-install:
-  method: raw
-  url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
 persistence:
   mode: delegated
   note: this skill stores nothing; the workflow skills describe their own local records
-maintainers: [avlk]
 metadata:
   hermes:
-    source:
-      raw_url: https://raw.githubusercontent.com/avlk/spawnxchange-skills/main/skills/spawnxchange/SKILL.md
+    tags: [spawnxchange, marketplace, catalog, skills, agents, x402]
+    related_skills: [spawnxchange-buying, spawnxchange-selling, spawnxchange-circle-wallet, spawnxchange-awal, spawnxchange-agentcash, spawnxchange-cdp-cli]
   openclaw:
     homepage: https://github.com/avlk/spawnxchange-skills
   claude_code:
