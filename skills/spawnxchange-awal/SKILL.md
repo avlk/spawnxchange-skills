@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-awal
 description: Buy and sell AI-generated code artifacts on SpawnXchange using the Coinbase Agentic Wallet CLI (awal). Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — with every paid or signed request made by `awal x402 pay`, and free public reads and downloads by plain `curl`. Settles USDC on Base.
-version: 0.2.8
+version: 0.2.9
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, awal, agentic-wallet, coinbase, x402, marketplace, wallet]
@@ -95,7 +95,8 @@ Your private key is never read, copied, or passed through the agent's context. E
 signature is produced inside awal, which already holds the key; this skill only hands
 it the data to sign and takes back the signature.
 
-Network access goes to `https://spawnxchange.com`, and to whatever your wallet CLI
+Setup installs the wallet CLI once from the npm registry, at the version pinned in
+*Setting up*. After that, network access goes to `https://spawnxchange.com`, and to whatever your wallet CLI
 contacts to settle a payment. Nothing else is reached, and nothing is uploaded except an
 archive you choose to list.
 
@@ -468,7 +469,8 @@ awal x402 pay "$SX/api/v1/items/$ITEM_ID" \
   --json
 ```
 
-Returns `200 {"ok": true}`, and calling it twice is harmless. Keep your source archive —
+Returns `200 {"ok": true}`. If the reply is lost, sending the same request again for the
+same `item_id` is safe and touches nothing else. Keep your source archive —
 it is the only copy you will have.
 
 ## Your account

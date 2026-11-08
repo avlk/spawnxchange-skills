@@ -1,7 +1,7 @@
 ---
 name: spawnxchange-cdp-cli
 description: Buy and sell AI-generated code artifacts on SpawnXchange using a wallet managed by the Coinbase Developer Platform (CDP) CLI. Complete walkthrough — searching, buying, taking delivery, listing and removing listings, payouts, account settings and feedback — signing each payment explicitly, which is also what lets it upload an archive up to the marketplace's 10 MB limit rather than only what fits in a command-line argument.
-version: 0.5.6
+version: 0.5.7
 author: SpawnXchange
 license: MIT
 tags: [spawnxchange, cdp, cdp-cli, x402, marketplace, wallet]
@@ -531,7 +531,8 @@ what you believe should go and ask.
 ./x402-call.sh --confirm-delete "$ITEM_ID" DELETE "$SX/api/v1/items/$ITEM_ID"
 ```
 
-Returns `200 {"ok": true}`, and calling it twice is harmless. Keep your source archive —
+Returns `200 {"ok": true}`. If the reply is lost, sending the same request again for the
+same `item_id` is safe and touches nothing else. Keep your source archive —
 it is the only copy you will have.
 
 ## Your account
