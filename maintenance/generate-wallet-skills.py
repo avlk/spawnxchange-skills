@@ -49,7 +49,7 @@ REPO = Path(__file__).resolve().parent.parent
 # To bump: check the upstream release notes, change the pin here, regenerate, and
 # bump the skill versions. Do not drop the pin to silence a stale-version report.
 PINS = {
-    "circle": "@circle-fin/cli@1.0.0",
+    "circle": "@circle-fin/cli@1.3.0",
     "awal": "awal@2.12.1",
     "agentcash": "agentcash@0.17.1",
     "skills": "skills@1.5.24",
@@ -742,7 +742,7 @@ you and signed anyway.
         "bins": ["circle", "curl", "jq"],
         "permissions": ["shell"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.9",
+        "version": "0.3.10",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -764,11 +764,12 @@ Circle's documentation at `https://developers.circle.com/agent-stack/agent-walle
 covers installing it, funding it and setting spending policies. This skill covers what to
 do with it on SpawnXchange.""",
         "quote_note": (
-            "`circle services inspect` will also show you what the endpoint is asking\n"
-            "for without paying, and `--estimate` on `pay` previews a call without "
-            "settling it:"
+            "`circle services inspect`\nprobes with GET unless you pass `-X POST`, and "
+            "the purchase route answers a GET with `405`;\n`--estimate` on `pay` shows "
+            "what the endpoint asks for without paying:"
         ),
-        "quote_cmd": 'circle services inspect "$SX/api/v1/items/$ITEM/acquire" --output json',
+        "quote_cmd": circle("POST", "$SX/api/v1/items/$ITEM/acquire", LEGAL).replace(
+            "  --output json", "  --estimate --output json"),
         "prereq": """## Setting up
 
 You need a logged-in Circle wallet with some USDC in it, and the `circle` CLI on your
@@ -776,9 +777,8 @@ PATH.
 
 **Install it Circle's way, not ours.** Circle's instructions are at
 `https://developers.circle.com/agent-stack/agent-wallets`, and they stay current in a way
-a copy here would not. This skill was written and tested against
-**""" + PINS["circle"] + """**; check what you have with `circle --version` and read
-Circle's release notes before moving to a newer one.
+a copy here would not. This skill is tested with **""" + PINS["circle"] + """**;
+check what you have with `circle --version`.
 
 Nothing in this skill installs that CLI, and `scripts/list-artifact.sh` refuses to run
 without it rather than fetching it: the signing path is the last place that should be
@@ -793,11 +793,13 @@ Logging in for the first time creates a wallet on every EVM chain the CLI suppor
 there is no separate create step. Fund it with USDC on Base or Polygon; Circle's
 documentation covers the ways to do that.
 
-Then set the address and chain the rest of this skill uses:
+Then set the chain and address the rest of this skill uses. `circle wallet status` does
+not print the address; `circle wallet list` does, and needs `--chain`:
 
 ```bash
-export WALLET="0x..."     # circle wallet status shows it
-export CHAIN="BASE"
+export CHAIN="BASE"       # or MATIC for Polygon
+export WALLET=$(circle wallet list --chain "$CHAIN" --type agent --output json | jq -r '.data[0].address')
+circle wallet balance --address "$WALLET" --chain "$CHAIN" -q    # e.g. USDC:1.565
 ```
 
 ## Chains
@@ -833,7 +835,12 @@ Polygon is `MATIC`, not `POLYGON`.
         "pitfalls": r"""1. **Leaving out `-X`.** `--data` alone implies POST, and the mismatch is only refused
    after the payment settles.
 2. **Writing `POLYGON` instead of `MATIC`.** The CLI rejects it, and the error does not
-   obviously point at the spelling.""",
+   obviously point at the spelling.
+3. **`pay` rejecting the server's payment request itself** (an error such as
+   "...extension is malformed" before any payment). Nothing was charged. Do not
+   downgrade the CLI or sign the payment by hand: report it with *Telling us something
+   is wrong* above and tell the user. If the report fails the same way, tell the user
+   that too.""",
     },
 
     "spawnxchange-agentcash": {
