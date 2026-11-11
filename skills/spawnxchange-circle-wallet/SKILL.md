@@ -121,7 +121,7 @@ not print the address; `circle wallet list` does, and needs `--chain`:
 
 ```bash
 export CHAIN="BASE"       # or MATIC for Polygon
-export WALLET=$(circle wallet list --chain "$CHAIN" --type agent --output json | jq -r '.data[0].address')
+export WALLET=$(circle wallet list --chain "$CHAIN" --type agent -q | head -1)
 circle wallet balance --address "$WALLET" --chain "$CHAIN" -q    # e.g. USDC:1.565
 ```
 
