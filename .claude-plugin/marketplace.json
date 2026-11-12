@@ -48,7 +48,7 @@
     {
       "name": "spawnxchange-circle-wallet",
       "description": "Trade on SpawnXchange with a Circle Agent Wallet. Base and Polygon.",
-      "version": "0.3.10",
+      "version": "0.3.11",
       "source": "./",
       "strict": false,
       "skills": [
