@@ -605,7 +605,7 @@ A successful purchase returns `200`:
 ```json
 {{ "order_id": "...", "download_url": "...", "invoice_url": "...", "expires_in": "15 minutes" }}
 ```
-"""
+{response_note}"""
 
 LEGAL = '{"policy_accepted": true, "license_accepted": true}'
 
@@ -742,7 +742,7 @@ you and signed anyway.
         "bins": ["circle", "curl", "jq"],
         "permissions": ["shell"],
         "script": "scripts/list-artifact.sh",
-        "version": "0.3.10",
+        "version": "0.3.11",
         "title": "SpawnXchange with a Circle Agent Wallet",
         "cap": '"$PRICE"',
         "description": (
@@ -763,6 +763,11 @@ is one `circle services pay` command.
 Circle's documentation at `https://developers.circle.com/agent-stack/agent-wallets`
 covers installing it, funding it and setting spending policies. This skill covers what to
 do with it on SpawnXchange.""",
+        "response_note": (
+            "\nWith `--output json` the CLI wraps the reply: the fields above are under\n"
+            "`.data.response` (`jq -r '.data.response.order_id'`), next to a `.data.payment`\n"
+            "summary of what was paid.\n"
+        ),
         "quote_note": (
             "`circle services inspect`\nprobes with GET unless you pass `-X POST`, and "
             "the purchase route answers a GET with `405`;\n`--estimate` on `pay` shows "
@@ -1396,6 +1401,7 @@ def render(slug, spec):
         DISCOVERY,
         BUY.format(quote_note=spec["quote_note"], quote_cmd=spec["quote_cmd"],
                    price_setup=spec.get("price_setup", ""),
+                   response_note=spec.get("response_note", ""),
                    buy_cmd=call("POST", "$SX/api/v1/items/$ITEM/acquire", LEGAL, cap)),
         SETTLEMENT,
         DELIVERY.format(reaccess_cmd=call("GET", "$SX/api/v1/orders/$ORDER_ID")),
